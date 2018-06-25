@@ -6,6 +6,8 @@ import wx.dataview as dv
 import zw.images as images
 import zw.utils as utils
 import ui.trayicon as trayicon
+from ui.ippool.rawipgrid import RawIpGrid
+from ui.ippool.cookedipgrid import CookedIpGrid
 
 ID_IP_POOL= wx.ID_HIGHEST + 1
 ID_IP_TRACE = ID_IP_POOL + 1
@@ -61,28 +63,18 @@ class RibbonFrame(wx.Frame):
 		box1 = wx.StaticBox(self._panel, -1, 'IP爬取')
 		box2 = wx.StaticBox(self._panel, -1, 'IP验证')
 
-		self.dvRawIps = dvRawIps = dv.DataViewListCtrl(box1)
-		self.dvCookedIps = dvCookedIps = dv.DataViewListCtrl(box2)
+		self.dvRawIps = dvRawIps = RawIpGrid(box1)
+		self.dvCookedIps = dvCookedIps = CookedIpGrid(box2)
 		bs = wx.BoxSizer()
 		bs.Add(dvRawIps, 1, wx.EXPAND|wx.TOP|wx.LEFT|wx.RIGHT)
 		box1.SetSizer(bs)
 		bs = wx.BoxSizer()
 		bs.Add(dvCookedIps, 1, wx.EXPAND|wx.TOP|wx.LEFT|wx.RIGHT)
 		box2.SetSizer(bs)
-		
-		dvRawIps.AppendProgressColumn('id', width=100)
-		dvRawIps.AppendTextColumn('artist', width=170)
-		dvRawIps.AppendTextColumn('title', width=260)
-		dvRawIps.AppendTextColumn('genre', width=80)
-
-		dvCookedIps.AppendProgressColumn('id', width=100)
-		dvCookedIps.AppendTextColumn('artist', width=170)
-		dvCookedIps.AppendTextColumn('title', width=260)
-		dvCookedIps.AppendTextColumn('genre', width=80)
 
 		musicdata = [
-			[10, "Bad English", "The Price Of Love", "Rock"],
-			[20, "DNA featuring Suzanne Vega", "Tom's Diner", "Rock"],
+			[10, "Bad English", "The Price Of Love", wx.dataview.DataViewIconText(text="", icon=images.flag_cn.Icon)],
+			[20, "DNA featuring Suzanne Vega", "Tom's Diner", wx.dataview.DataViewIconText(text="", icon=images.zhao.Icon)],
 			[30, "George Michael", "Praying For Time", "Rock"],
 			[40, "Gloria Estefan", "Here We Are", "Rock"],
 			[50, "Linda Ronstadt", "Don't Know Much", "Rock"],
@@ -90,7 +82,6 @@ class RibbonFrame(wx.Frame):
 		]
 		
 		for itemvalues in musicdata:
-			print(itemvalues)
 			dvRawIps.AppendItem(itemvalues)
 
 		bsizer2.Add(box1, 1, wx.EXPAND)
