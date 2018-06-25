@@ -1,0 +1,6 @@
+pylint
+pyinstaller
+wxPython
+requests
+records
+beautifulsoup4

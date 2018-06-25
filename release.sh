@@ -1,0 +1,1 @@
+./venv/bin/pyinstaller app_mac.spec
