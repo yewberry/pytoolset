@@ -4,7 +4,7 @@ block_cipher = None
 
 
 a = Analysis(['pytoolset\\main.py'],
-             pathex=['C:\\work\\pytoolset\\pytoolset'],
+             pathex=['E:\\workspace\\pytoolset\\pytoolset'],
              binaries=[],
              datas=[],
              hiddenimports=[],
@@ -21,7 +21,7 @@ exe = EXE(pyz,
           a.binaries,
           a.zipfiles,
           a.datas,
-          name='我的工具集',
+          name='MyTool',
           debug=False,
           strip=False,
           upx=True,

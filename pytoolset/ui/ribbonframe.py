@@ -51,7 +51,7 @@ class RibbonFrame(wx.Frame):
 		self._panel.SetSizer(s)
 
 		self.BindEvents([ip_bar, dns_bar])
-		#self.SetIcon(images.logo.Icon)
+		self.SetIcon(images.logo48.Icon)
 		self.CenterOnScreen()
 		self.setArtProvider(RB.RibbonMSWArtProvider())
 
