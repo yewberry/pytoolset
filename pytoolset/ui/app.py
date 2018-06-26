@@ -9,7 +9,7 @@ class App(wx.App):
 		t = Timeit()
 		LOG.debug("OnInit")
 
-		frm = RibbonFrame(None, -1, '我的工具集合(yew1998@gmail.com)', size=(800, 600))
+		frm = RibbonFrame(None, -1, '我的工具集合(yew1998@gmail.com)', size=(1024, 768))
 		frm.Show()
 
 		LOG.debug('Elapsed time: %f ms' % t.end())
