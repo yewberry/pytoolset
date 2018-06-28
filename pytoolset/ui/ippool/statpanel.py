@@ -64,6 +64,8 @@ class StatPanel(wx.Panel):
 		db = Database()
 		rows = db.query('ippool_all')
 		rows = rows.as_dict()
+		if len(rows) == 0:
+			return []
 		delt = rows[len(rows)-1]['speed'] - rows[0]['speed']
 		rows = [ [d['country'],d['ip'],d['port'],d['city'], 100-int( 100*(d['speed']/delt) ), d['conn_type']] for d in rows]
 		return rows

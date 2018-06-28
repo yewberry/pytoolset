@@ -26,7 +26,7 @@ class App(wx.App):
 			},
 			'ippool': {
 				'urls': ['http://www.xicidaili.com/nn/'],
-				'interval': 5,
+				'interval': 60,
 			}
 		}).data
 		# init db

@@ -6,7 +6,7 @@ LOG = logger.getLogger(__name__)
 class Database():
 	DB_INIT_SQL = {
 		'sqlite': [
-			"""CREATE TABLE IF NOT EXISTS ippool (id INT PRIMARY KEY AUTOINCREMENT
+			"""CREATE TABLE IF NOT EXISTS ippool (id INTEGER PRIMARY KEY AUTOINCREMENT
 				, ip TEXT, port TEXT, country TEXT, city TEXT, speed FLOAT, valid INT
 				, conn_type TEXT, update_time TIMESTAMP NOT NULL DEFAULT 
 				(datetime(CURRENT_TIMESTAMP,'localtime')) )"""
