@@ -3,4 +3,6 @@ pyinstaller
 wxPython
 requests
 records
+PyMySQL
 beautifulsoup4
+blinker

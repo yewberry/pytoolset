@@ -1,12 +1,18 @@
-import random
 import wx
 import wx.dataview as dv
+from blinker import signal
+
 import zw.images as images
+from zw.database import Database
 
 class StatPanel(wx.Panel):
-	def __init__(self, parent, db):
+	def __init__(self, parent):
 		wx.Panel.__init__(self, parent, -1)
-		self.db = db
+		self.init_ui()
+		self.load_data()
+		self.bind_event()
+	
+	def init_ui(self):
 		self.dvc = dvc = dv.DataViewCtrl(self,
 								   style=wx.BORDER_THEME
 								   | dv.DV_ROW_LINES # nice alternating bg colors
@@ -15,36 +21,32 @@ class StatPanel(wx.Panel):
 								   | dv.DV_MULTIPLE
 								   )
 
-		# rows = [
-		# 	{'ip': '127.0.0.1', 'port': '8080', 'country': 'cn', 'city': '江苏', 'speed': 80, 'update_time': '2018-06-26 20:48:17'},
-		# 	{'ip': '127.0.0.2', 'port': '8080', 'country': 'cn', 'city': '江苏', 'speed': 80, 'update_time': '2018-06-26 20:48:17'},
-		# 	{'ip': '127.0.0.3', 'port': '8080', 'country': 'cn', 'city': '江苏', 'speed': 80, 'update_time': '2018-06-26 20:48:17'},
-		# ]
-		rows = db.query('SELECT * FROM ippool')
-		rows = rows.as_dict()
-		rows = [ [d['country'],d['ip'],d['port'],d['city'],d['speed']] for d in rows]
-
-
-		self.model = StatListModel(rows)
-		# Tel the DVC to use the model
-		dvc.AssociateModel(self.model)
-		
-		dvc.AppendIconTextColumn('国家', 0, width=30)
+		dvc.AppendIconTextColumn('国家', 0, width=40)
 		dvc.AppendTextColumn("IP地址", 1, width=120)
 		dvc.AppendTextColumn("端口", 2, width=50)
 		dvc.AppendTextColumn('服务器地址', 3, width=100)
 		dvc.AppendProgressColumn('速度', 4, width=100)
+		dvc.AppendTextColumn('连接类型', 5, width=80)
 		dvc.SetIndent(0)
 		for c in dvc.Columns:
 			c.Sortable = True
 			c.Reorderable = True
-			c.MinWidth = 30
+			c.MinWidth = 40
 			# c.Alignment = wx.ALIGN_CENTER
 			# c.Renderer.Alignment = wx.ALIGN_CENTER
-
 		self.Sizer = wx.BoxSizer(wx.VERTICAL)
 		self.Sizer.Add(dvc, 1, wx.EXPAND)
 	
+	def load_data(self):
+		rows = self.getall()
+		self.model = StatListModel(rows)
+		# Tel the DVC to use the model
+		self.dvc.AssociateModel(self.model)
+	
+	def bind_event(self):
+		sig_refresh = signal('refresh')
+		sig_refresh.connect(self.refresh)
+
 	def onDeleteRows(self, evt):
 		# Remove the selected row(s) from the model. The model will take care
 		# of notifying the view (and any other observers) that the change has
@@ -52,16 +54,27 @@ class StatPanel(wx.Panel):
 		items = self.dvc.GetSelections()
 		rows = [self.model.GetRow(item) for item in items]
 		self.model.DeleteRows(rows)
-		
-	def onAddRow(self, evt):
-		id = len(self.model.data) + 1
-		value = ['cn', '127.0.0.1', '8080', '江苏', 80]
-		self.model.AddRow(value)
+	
+	def refresh(self, sender=None):
+		dat = self.getall()
+		# called by thread signal, must use CallAfter to invoke in main thread
+		wx.CallAfter(self.model.add_update_rows, dat)
+	
+	def getall(self):
+		db = Database()
+		rows = db.query('ippool_all')
+		rows = rows.as_dict()
+		delt = rows[len(rows)-1]['speed'] - rows[0]['speed']
+		rows = [ [d['country'],d['ip'],d['port'],d['city'], 100-int( 100*(d['speed']/delt) ), d['conn_type']] for d in rows]
+		return rows
 
 class StatListModel(dv.DataViewIndexListModel):
 	def __init__(self, data):
 		dv.DataViewIndexListModel.__init__(self, len(data))
 		self.data = data
+		self.dmap = {}
+		for idx, d in enumerate(data):
+			self.dmap[self.get_key(d)] = idx
 		
 	def GetColumnType(self, col):
 		'''
@@ -82,10 +95,10 @@ class StatListModel(dv.DataViewIndexListModel):
 		return len(self.data)
 		
 	def GetAttrByRow(self, row, col, attr):
-		if col == 3:
-			attr.SetColour('blue')
-			attr.SetBold(True)
-			return True
+		# if col == 3:
+		# 	attr.SetColour('blue')
+		# 	attr.SetBold(True)
+		# 	return True
 		return False
 		
 	def SetValueByRow(self, value, row, col):
@@ -118,4 +131,37 @@ class StatListModel(dv.DataViewIndexListModel):
 		self.data.append(value)
 		# notify views
 		self.RowAppended()
+	
+	def get_key(self, d):
+		return '%s_%s' % (d[1], d[2])
+
+	def get_index(self, d):
+		k = self.get_key(d)
+		return self.dmap[k] if k in self.dmap else -1
+
+	def isdirty(self, d):
+		idx = self.get_index(d)
+		if idx > -1:
+			o = self.data[idx]
+			for i, p in enumerate(o):
+				if p != d[i]:
+					return True, idx
+		return False, idx
+	
+	def isnew(self, d):
+		idx = self.get_index(d)
+		return idx == -1
+	
+	def add_update_rows(self, dat):
+		for d in dat:
+			r, idx = self.isdirty(d)
+			if r:
+				self.data[idx] = d
+				self.RowChanged(idx)
+
+			if self.isnew(d):
+				self.data.append(d)
+				self.RowAppended()
+		
+
 

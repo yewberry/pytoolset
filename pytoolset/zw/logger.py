@@ -1,8 +1,11 @@
 import logging
 import logging.config
 from pathlib import Path
+import zw.utils as utils
 
-LOG_DIR = Path.home().joinpath('logs')
+LOG_DIR = 'logs'
+if utils.isMacOS():
+	LOG_DIR = Path.home().joinpath('logs')
 LOG_FILE = 'app.log'
 
 def getLogger(name=__name__):
