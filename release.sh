@@ -1,1 +1,1 @@
-./venv/bin/pyinstaller app_mac.spec
+./venv/bin/pyinstaller --upx-dir=/usr/local/bin/ release_mac.spec

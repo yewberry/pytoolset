@@ -20,8 +20,8 @@ class App(wx.App):
 			'database': {
 				'dbtype': 'sqlite',
 				'dbname': 'data.db',
-				'dbuser': 'dozer',
-				'dbpass': '111111',
+				'dbuser': '',
+				'dbpass': '',
 				'dbaddr': 'localhost',
 			},
 			'ippool': {
@@ -32,7 +32,7 @@ class App(wx.App):
 		# init db
 		Database(cfg['database']).init_db()
 
-		frm = RibbonFrame(None, -1, '我的工具集合(yew1998@gmail.com)', size=(1024, 768))
+		frm = RibbonFrame(None, -1, '爬虫工具集 v0.1 yew1998@gmail.com', size=(1024, 768))
 		frm.Show()
 		LOG.debug('Elapsed time: %f ms' % t.end())
 		return True

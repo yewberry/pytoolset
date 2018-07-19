@@ -3,7 +3,7 @@ import traceback
 import multiprocessing
 import zw.logger as logger
 # must set log file name before any class of my
-logger.LOG_FILE = '我的工具集.log'
+logger.LOG_FILE = 'app.log'
 
 from ui.app import App
 

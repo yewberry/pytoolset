@@ -8,7 +8,7 @@
 			"name": "Python: Run Project",
 			"type": "python",
 			"request": "launch",
-			"program": "${workspaceFolder}/pytoolset/main.py"
+			"program": "${workspaceFolder}/src/main.py"
 		},
 		{
 			"name": "Python: Current File",

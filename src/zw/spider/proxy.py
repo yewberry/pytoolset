@@ -12,10 +12,7 @@ from zw.config import Config
 from zw.database import Database
 import zw.logger as logger
 
-sig_refresh = signal('refresh')
-sig_crawl_start = signal('crawl_start')
-sig_crawl_result = signal('crawl_result')
-sig_crawl_block = signal('crawl_block')
+SIG_REFRESH = signal('refresh')
 
 LOG = logger.getLogger(__name__)
 class ProxySpider():
@@ -45,7 +42,6 @@ class ProxySpider():
 			o = {'ip':ip, 'port':port, 'country':'cn', 'city':city, 'speed':speed, 'conn_type':conn_type}
 			recs.append(o)
 		num_insert, num_update = db.insert_update(recs, 'ippool_exist', 'ippool_insert', 'ippool_update', ['ip','port'])
-		sig_crawl_result.send( (num_insert, num_update) )
 	
 	def find_tag(self, tag):
 		return tag.name == 'tr' and tag.has_attr('class')
@@ -56,8 +52,7 @@ class ProxySpider():
 		soup = BeautifulSoup(r.text, 'html.parser')
 		pages = soup.find_all(attrs={'class': 'pagination'})
 		if len(pages) == 0:
-			LOG.debug('MAYBE BLOCKED')
-			sig_crawl_block.send('[PROXY SOURCE BLOCK YOU]')
+			LOG.debug('PROXY SOURCE BLOCK YOU')
 			return
 		pages = pages[0].contents
 		last = int(pages[len(pages)-3].string)
@@ -92,14 +87,13 @@ class WorkerThread(threading.Thread):
 			urls.append(url)
 			if idx % step == 0:
 				LOG.debug(urls)
-				sig_crawl_start.send(urls)
 				pool = ThreadPool(self.pool_size)
 				results = pool.map(self.proc_func, urls)
 				# close the pool and wait for the work to finish
 				pool.close()
 				pool.join()
 				urls[:] = []
-				sig_refresh.send(self)
+				SIG_REFRESH.send(self)
 				time.sleep(self.interval)
 		LOG.debug('Finish proxy spider')
 

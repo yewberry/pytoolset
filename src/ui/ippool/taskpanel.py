@@ -11,19 +11,14 @@ from zw.database import Database
 import zw.logger as logger
 
 LOG = logger.getLogger(__name__)
-
-sig_task_result = signal('task_result')
-sig_task_succ = signal('task_succ')
-sig_task_fail = signal('task_fail')
-sig_task_start = signal('task_start')
+SIG_TASK_RESULT = signal('task_result')
+SIG_REFRESH = signal('refresh')
 
 class TaskPanel(wx.Panel):
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent, -1)
 		self.init_ui()
-		self.load_data()
 		self.bind_event()
-		self.start_worker()
 
 	def init_ui(self):
 		self.dvc = dvc = dv.DataViewCtrl(self,
@@ -33,10 +28,10 @@ class TaskPanel(wx.Panel):
 								   | dv.DV_VERT_RULES
 								   | dv.DV_MULTIPLE
 								   )
-		dvc.AppendTextColumn("待测IP", 0, width=120)
-		dvc.AppendTextColumn("端口", 1, width=50)
-		dvc.AppendTextColumn('连接类型', 2, width=100)
-		dvc.AppendProgressColumn('测试结果', 3, width=100)
+		dvc.AppendTextColumn("待测IP", 1, width=120)
+		dvc.AppendTextColumn("端口", 2, width=50)
+		dvc.AppendTextColumn('连接类型', 3, width=100)
+		dvc.AppendProgressColumn('测试结果', 4, width=100)
 		dvc.SetIndent(0)
 		for c in dvc.Columns:
 			c.Sortable = True
@@ -48,55 +43,62 @@ class TaskPanel(wx.Panel):
 		self.Sizer.Add(dvc, 1, wx.EXPAND)
 
 	def load_data(self):
-		rows = self.getall()
+		rows = self.get_all_record()
 		self.model = TaskListModel(rows)
 		# Tel the DVC to use the model
 		self.dvc.AssociateModel(self.model)
 	
 	def bind_event(self):
-		sig_task_result.connect(self.on_task_result)
+		SIG_TASK_RESULT.connect(self.on_task_result)
 
 	def on_task_result(self, dat):
 		wx.CallAfter(self.update_status, dat)
 
 	def update_status(self, dat):
-		self.model.update_row(dat)
-		if dat['status_code'] == 200:
-			sig_task_succ.send(1)
-		else:
-			sig_task_fail.send(1)
+		result = dat['result']
+		rec = dat['rec']
+		rec[4] = 1 if result else 0 # set valid field
+		self.update_record(rec)
+		self.model.update_row(rec)
 
-	def do_task(self, proxy):
-		idx = proxy[len(proxy)-1]
-		ip = proxy[0]
-		port = proxy[1]
-		conn_type = proxy[2]
+	def do_task(self, rec):
+		ip = rec[1]
+		port = rec[2]
+		conn_type = rec[3]
 		conn_type = conn_type.lower() if conn_type else 'http'
-		if conn_type == 'http':
-			proxies = {
-				'http': 'http://%s:%s' % (ip, port)
-			}
-		else:
-			proxies = {
-				'https': 'http://%s:%s' % (ip, port)
-			}
-		sig_task_start.send(proxy)
-		r = requests.get('http://www.baidu.com', proxies=proxies)
-		sig_task_result.send({'idx':idx, 'status_code':r.status_code})
+		proxies = {'http': 'http://%s:%s' % (ip, port)} if conn_type == 'http' else\
+					 {'https': 'http://%s:%s' % (ip, port)}
+		try:
+			r = requests.get('http://www.baidu.com', proxies=proxies, timeout=5)
+		except:
+			SIG_TASK_RESULT.send({'rec': rec, 'result': False})
+			SIG_REFRESH.send(self)
+			return
+		result = True if r.status_code == 200 else False
+		SIG_TASK_RESULT.send({'rec': rec, 'result': result})
+		SIG_REFRESH.send(self)
 
-	def start_worker(self):		
+	def start_worker(self):
+		self.load_data()
 		self.worker = TaskWorkerThread(self.model.data, self.do_task)
 		self.worker.start()
 
 	def stop_worker(self):
 		self.worker.stop()
 
-	def getall(self):
+	def get_all_record(self):
 		db = Database()
 		rows = db.query('ippool_all')
 		rows = rows.as_dict()
-		rows = [ [d['ip'], d['port'], d['conn_type'], 0] for d in rows]
+		rows = [ [i, d['ip'], d['port'], d['conn_type'], d['valid'] ] for i, d in enumerate(rows)]
 		return rows
+	
+	def update_record(self, rec):
+		ip = rec[1]
+		port = rec[2]
+		valid = rec[4]
+		db = Database()
+		rows = db.query('ippool_update_valid', ip=ip, port=port, valid=valid)
 
 class TaskListModel(dv.DataViewIndexListModel):
 	def __init__(self, data):
@@ -119,10 +121,6 @@ class TaskListModel(dv.DataViewIndexListModel):
 		return len(self.data)
 		
 	def GetAttrByRow(self, row, col, attr):
-		if col == 3:
-			attr.SetColour('blue')
-			attr.SetBold(True)
-			return True
 		return False
 		
 	def SetValueByRow(self, value, row, col):
@@ -138,17 +136,13 @@ class TaskListModel(dv.DataViewIndexListModel):
 		row2 = self.GetRow(item2)
 		return self.data[row1][col] < self.data[row2][col]
 
-	def update_row(self, dat):
-		idx = dat['idx']
-		code = dat['status_code']
-		if code == 200:
-			self.data[idx][3] = 100
-		else:
-			self.data[idx][3] = 0
+	def update_row(self, rec):
+		idx = rec[0]
+		self.data[idx][4] = rec[4]*100
 		self.RowChanged(idx)
 
 class TaskWorkerThread(threading.Thread):
-	def __init__(self, dat, proc_func, interval=3, pool_size=8):
+	def __init__(self, dat, proc_func, interval=3, pool_size=3):
 		super(TaskWorkerThread, self).__init__()
 		self.dat = dat
 		self.proc_func = proc_func

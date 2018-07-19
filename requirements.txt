@@ -1,4 +1,6 @@
 pylint
+rope
+autopep8
 pyinstaller
 wxPython
 requests
@@ -6,3 +8,4 @@ records
 PyMySQL
 beautifulsoup4
 blinker
+pyshp

@@ -6,6 +6,9 @@ from ui.ledctrl import LEDCtrl
 from ui.ippool.statpanel import StatPanel
 from ui.ippool.taskpanel import TaskPanel
 
+SIG_LOG = signal('log')
+SIG_REFRESH = signal('refresh')
+
 class PoolPanel(wx.Panel):
 	def __init__(self, parent, id=wx.ID_ANY, pos=wx.DefaultPosition
 				, size=wx.DefaultSize, style=wx.TAB_TRAVERSAL):
@@ -43,51 +46,28 @@ class PoolPanel(wx.Panel):
 
 	def load_data(self):
 		db = Database()
-		rows = db.query('ippool_count')
-		self.led_total.SetValue(str(rows[0].c))
+		r = db.query('ippool_count')[0]
+		c = r.c if r.c is not None else 0
+		s = r.s if r.s is not None else 0
+		f = r.f if r.f is not None else 0
+		self.led_total.SetValue(str(c))
+		self.led_succ.SetValue(str(s))
+		self.led_fail.SetValue(str(f))
 	
 	def bind_event(self):
-		sig_refresh = signal('refresh')
-		sig_refresh.connect(self.refresh)
-		sig_crawl_start = signal('crawl_start')
-		sig_crawl_start.connect(self.on_crawl_start)
-		sig_crawl_result = signal('crawl_result')
-		sig_crawl_result.connect(self.on_crawl_result)
-		sig_crawl_block = signal('crawl_block')
-		sig_crawl_block.connect(self.on_log)
-
-		sig_task_start = signal('task_start')
-		sig_task_start.connect(self.on_task_start)
-		sig_task_succ = signal('task_succ')
-		sig_task_succ.connect(self.on_task_succ)
-		sig_task_fail = signal('task_fail')
-		sig_task_fail.connect(self.on_task_fail)
+		SIG_REFRESH.connect(self.refresh)
+		SIG_LOG.connect(self.on_log)
+	
+	def start_task(self):
+		self.taskpanel.start_worker()
+	
+	def stop_task(self):
+		self.taskpanel.stop_worker()
 
 	def refresh(self, sender):
 		wx.CallAfter(self.load_data)
-
-	def on_crawl_start(self, dat):
-		d = [ '爬取:%s\n' % x for x in dat]
-		wx.CallAfter(self.write_log, d)
-	def on_crawl_result(self, dat):
-		d = '插入:%s，更新:%s\n' % (dat[0], dat[1])
-		wx.CallAfter(self.write_log, [d])
 	def on_log(self, dat):
-		d = '%s\n' % dat
-		wx.CallAfter(self.write_log, [d])
-	def on_task_start(self, dat):
-		d = '通过代理:%s:%s, 连接类型:%s,访问www.baidu.com\n'%(dat[0], dat[1], dat[2])
-		wx.CallAfter(self.write_log, [d])
-	def write_log(self, dat):
-		for d in dat:
-			self.logwindow.write(d)
-	
-	def on_task_succ(self, dat):
-		wx.CallAfter(self.update_led, self.led_succ, dat*1)
-	def on_task_fail(self, dat):
-		wx.CallAfter(self.update_led, self.led_fail, dat*-1)
-	def update_led(self, led, num):
-		v = int(led.GetValue())	+ num
-		led.SetValue(str(v))	
+		s = '%s\n' % dat
+		wx.CallAfter(self.logwindow.write, s)
 
 		

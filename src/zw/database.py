@@ -7,7 +7,7 @@ class Database():
 	DB_INIT_SQL = {
 		'sqlite': [
 			"""CREATE TABLE IF NOT EXISTS ippool (id INTEGER PRIMARY KEY AUTOINCREMENT
-				, ip TEXT, port TEXT, country TEXT, city TEXT, speed FLOAT, valid INT
+				, ip TEXT, port TEXT, country TEXT, city TEXT, speed FLOAT, valid INT DEFAULT 0
 				, conn_type TEXT, update_time TIMESTAMP NOT NULL DEFAULT 
 				(datetime(CURRENT_TIMESTAMP,'localtime')) )"""
 			, """CREATE TRIGGER IF NOT EXISTS update_timestamp AFTER UPDATE ON ippool 
@@ -16,17 +16,18 @@ class Database():
 		]
 		, 'mysql': [
 			"""CREATE TABLE IF NOT EXISTS ippool (id INT PRIMARY KEY NOT NULL AUTO_INCREMENT
-				, ip TEXT, port TEXT, country TEXT, city TEXT, speed FLOAT, valid INT
+				, ip TEXT, port TEXT, country TEXT, city TEXT, speed FLOAT, valid INT DEFAULT 0
 				, conn_type TEXT, update_time TIMESTAMP NOT NULL DEFAULT 
 				CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)"""
 		]
 	}
 	DB_SQL = {
 		'ippool_all': 'SELECT * FROM ippool ORDER BY speed ASC'
-		, 'ippool_count': 'SELECT count(*) AS c FROM ippool'
+		, 'ippool_count': 'SELECT count(*) as c, sum(case when valid=1 then 1 else 0 end) as s, sum(case when valid=0 then 1 else 0 end) as f FROM ippool'
 		, 'ippool_exist': 'SELECT count(*) AS c FROM ippool WHERE ip=:ip AND port=:port'
 		, 'ippool_insert': 'INSERT INTO ippool (ip, port, country, city, speed, conn_type) VALUES(:ip, :port, :country, :city, :speed, :conn_type)'
 		, 'ippool_update': 'UPDATE ippool SET country=:country, city=:city, speed=:speed, conn_type=:conn_type WHERE ip=:ip AND port=:port'
+		, 'ippool_update_valid': 'UPDATE ippool SET valid=:valid WHERE ip=:ip AND port=:port'
 	}
 	DB_CFG_DEF = None
 	def __init__(self, o=None, set_cfg_def=True):
@@ -46,7 +47,7 @@ class Database():
 		self.db = db = self.get_db()
 		sqls = Database.DB_INIT_SQL[self.dbtype]
 		for sql in sqls:
-			LOG.debug(sql)
+			#LOG.debug(sql)
 			t = db.transaction()
 			db.query(sql)
 			t.commit()

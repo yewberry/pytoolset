@@ -1,1 +1,1 @@
-./venv/bin/python ./pytoolset/zw/images.py
+./venv/bin/python ./src/zw/images.py
