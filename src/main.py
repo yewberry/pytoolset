@@ -9,7 +9,7 @@ from ui.app import App
 
 LOG = logger.getLogger(__name__)
 def main():
-	LOG.info('sys.path:'+str(sys.path))
+	LOG.debug('sys.path:'+str(sys.path))
 	try:
 		LOG.debug('App start...')
 		app = App(redirect=False)

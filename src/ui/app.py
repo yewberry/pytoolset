@@ -2,7 +2,6 @@ import os
 import wx
 import zw.logger as logger
 from zw.utils import Timeit
-from ui.ribbonframe import RibbonFrame
 from zw.config import Config
 from zw.database import Database
 
@@ -32,8 +31,13 @@ class App(wx.App):
 		# init db
 		Database(cfg['database']).init_db()
 
-		frm = RibbonFrame(None, -1, '爬虫工具集 v0.1 yew1998@gmail.com', size=(1024, 768))
-		frm.Show()
+		from ui.ribbonframe import RibbonFrame
+		# frm = RibbonFrame(None, -1, '爬虫工具集 v0.1 yew1998@gmail.com', size=(1024, 768))
+		# frm.Show()
+		from ui.auiframe import AuiFrame
+		frm = AuiFrame(None, -1, '爬虫工具集 v0.1 yew1998@gmail.com', size=(1024, 768))
+		frm.Show()		
+		
 		LOG.debug('Elapsed time: %f ms' % t.end())
 		return True
 
