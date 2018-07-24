@@ -5,62 +5,50 @@ from blinker import signal
 import zw.images as images
 from zw.database import Database
 
-class StatPanel(wx.Panel):
+class IPGrid(dv.DataViewCtrl):
 	def __init__(self, parent):
-		wx.Panel.__init__(self, parent, -1)
-		self.init_ui()
-		self.load_data()
-		self.bind_events()
-	
-	def init_ui(self):
-		self.dvc = dvc = dv.DataViewCtrl(self,
-								   style=wx.BORDER_THEME
-								   | dv.DV_ROW_LINES # nice alternating bg colors
-								   #| dv.DV_HORIZ_RULES
-								   | dv.DV_VERT_RULES
-								   | dv.DV_MULTIPLE
-								   )
+		dv.DataViewCtrl.__init__(self, parent, -1, 
+								style=wx.BORDER_THEME
+								| dv.DV_ROW_LINES # nice alternating bg colors
+								#| dv.DV_HORIZ_RULES
+								| dv.DV_VERT_RULES
+								| dv.DV_MULTIPLE
+								)
 
-		dvc.AppendIconTextColumn('国家', 0, width=40)
-		dvc.AppendTextColumn("IP地址", 1, width=120)
-		dvc.AppendTextColumn("端口", 2, width=50)
-		dvc.AppendTextColumn('服务器地址', 3, width=100)
-		dvc.AppendProgressColumn('速度', 4, width=100)
-		dvc.AppendTextColumn('连接类型', 5, width=80)
-		dvc.SetIndent(0)
-		for c in dvc.Columns:
+		self.AppendIconTextColumn(_('Cty'), 0, width=40)
+		self.AppendTextColumn(_('IP Addr'), 1, width=120)
+		self.AppendTextColumn(_('Port'), 2, width=50)
+		self.AppendTextColumn(_('Server'), 3, width=100)
+		self.AppendProgressColumn(_('Speed'), 4, width=100)
+		self.AppendTextColumn(_('Type'), 5, width=80)
+		self.SetIndent(0)
+
+		for c in self.Columns:
 			c.Sortable = True
 			c.Reorderable = True
 			c.MinWidth = 40
 			# c.Alignment = wx.ALIGN_CENTER
 			# c.Renderer.Alignment = wx.ALIGN_CENTER
-		self.Sizer = wx.BoxSizer(wx.VERTICAL)
-		self.Sizer.Add(dvc, 1, wx.EXPAND)
+
+		self.create_model()
+		self.bind_events()
 	
-	def load_data(self):
-		rows = self.getall()
-		self.model = StatListModel(rows)
-		# Tel the DVC to use the model
-		self.dvc.AssociateModel(self.model)
+	def create_model(self):
+		rows = self.records()
+		model = IPGridModel(rows)
+		self.AssociateModel(model)
 	
 	def bind_events(self):
 		sig_refresh = signal('refresh')
 		sig_refresh.connect(self.refresh)
-
-	def onDeleteRows(self, evt):
-		# Remove the selected row(s) from the model. The model will take care
-		# of notifying the view (and any other observers) that the change has
-		# happened.
-		items = self.dvc.GetSelections()
-		rows = [self.model.GetRow(item) for item in items]
-		self.model.DeleteRows(rows)
 	
 	def refresh(self, sender=None):
-		dat = self.getall()
+		dat = self.records()
+		model = self.GetModel()
 		# called by thread signal, must use CallAfter to invoke in main thread
-		wx.CallAfter(self.model.add_update_rows, dat)
+		wx.CallAfter(model.add_update_rows, dat)
 	
-	def getall(self):
+	def records(self):
 		db = Database()
 		rows = db.query('ippool_all')
 		rows = rows.as_dict()
@@ -70,7 +58,7 @@ class StatPanel(wx.Panel):
 		rows = [ [d['country'],d['ip'],d['port'],d['city'], 100-int( 100*(d['speed']/delt) ), d['conn_type']] for d in rows]
 		return rows
 
-class StatListModel(dv.DataViewIndexListModel):
+class IPGridModel(dv.DataViewIndexListModel):
 	def __init__(self, data):
 		dv.DataViewIndexListModel.__init__(self, len(data))
 		self.data = data

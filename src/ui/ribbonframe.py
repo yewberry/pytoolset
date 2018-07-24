@@ -7,7 +7,6 @@ import zw.utils as utils
 from zw.spider.proxy import ProxySpider
 
 import ui.trayicon as trayicon
-from ui.ippool.poolpanel import PoolPanel
 from ui.settingdialog import SettingDialog
 
 ID_RIBBON		= wx.ID_HIGHEST + 1
@@ -87,7 +86,7 @@ class RibbonFrame(wx.Frame):
 	def set_ribbon_page(self, page_id):
 		idx = 0
 		if page_id == ID_PAGE_IP:
-			self.poolpanel = PoolPanel(self._panel, wx.ID_ANY)
+			self.poolpanel = wx.Panel(self._panel, wx.ID_ANY)
 			panel_sizer = wx.BoxSizer(wx.VERTICAL)
 			panel_sizer.Add(self.poolpanel, 1, wx.EXPAND)
 			self._panel.SetSizer(panel_sizer)

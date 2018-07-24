@@ -31,21 +31,25 @@ class ZhihuSpider():
 
 	def test(self, i):
 		print(i)
-		time.sleep(3)
-		return 'process %s return' % i
+		# time.sleep(3)
+		return 'process %s return!'%i
 	
 	def start(self):
 		print( 'start in %s processes' % multiprocessing.cpu_count() )
-		arr = range(10)
 		rs = []
-		pool = multiprocessing.Pool(multiprocessing.cpu_count())
-		# poll.map_async(self.test, arr)
-		for i in range(100):
-			rs.append( pool.apply_async(self.test, args=(i,)) )
+		pool = multiprocessing.Pool()
+		
+		# for i in range(30):
+		# 	rs.append( pool.apply_async(self.test, args=(i,)) )
+		
+		arr = range(16)
+		for r in pool.map_async(self.test, arr).get():
+			print('::: %s' % r)
+			
 		pool.close()
 		pool.join()
-		for res in result:
-			print( '::: %s' % res.get() )
+		# for r in rs:
+		# 	print('::: %s' % r.get())
 
 	def stop(self):
 		self.worker.stop()

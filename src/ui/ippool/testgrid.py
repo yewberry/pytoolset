@@ -1,4 +1,5 @@
 import time
+import multiprocessing
 import threading
 from multiprocessing.dummy import Pool as ThreadPool
 import wx
@@ -14,52 +15,64 @@ LOG = logger.getLogger(__name__)
 SIG_TASK_RESULT = signal('task_result')
 SIG_REFRESH = signal('refresh')
 
-class TaskPanel(wx.Panel):
+class TestGrid(dv.DataViewCtrl):
 	def __init__(self, parent):
-		wx.Panel.__init__(self, parent, -1)
-		self.init_ui()
-		self.bind_event()
-
-	def init_ui(self):
-		self.dvc = dvc = dv.DataViewCtrl(self,
-								   style=wx.BORDER_THEME
-								   | dv.DV_ROW_LINES # nice alternating bg colors
-								   #| dv.DV_HORIZ_RULES
-								   | dv.DV_VERT_RULES
-								   | dv.DV_MULTIPLE
-								   )
-		dvc.AppendTextColumn("待测IP", 1, width=120)
-		dvc.AppendTextColumn("端口", 2, width=50)
-		dvc.AppendTextColumn('连接类型', 3, width=100)
-		dvc.AppendProgressColumn('测试结果', 4, width=100)
-		dvc.SetIndent(0)
-		for c in dvc.Columns:
+		wx.Panel.__init__(self, parent, -1, 
+						style=wx.BORDER_THEME
+						| dv.DV_ROW_LINES # nice alternating bg colors
+						#| dv.DV_HORIZ_RULES
+						| dv.DV_VERT_RULES
+						| dv.DV_MULTIPLE)
+		
+		self.AppendTextColumn(_('IP'), 1, width=120)
+		self.AppendTextColumn(_('Port'), 2, width=50)
+		self.AppendTextColumn(_('Type'), 3, width=100)
+		self.AppendProgressColumn(_('Result'), 4, width=100)
+		self.SetIndent(0)
+		for c in self.Columns:
 			c.Sortable = True
 			c.Reorderable = True
 			c.MinWidth = 30
 			# c.Alignment = wx.ALIGN_CENTER
 			# c.Renderer.Alignment = wx.ALIGN_CENTER
-		self.Sizer = wx.BoxSizer(wx.VERTICAL)
-		self.Sizer.Add(dvc, 1, wx.EXPAND)
+		
+		self.create_model()
+		self.bind_event()
+		self.start_worker()
 
-	def load_data(self):
-		rows = self.get_all_record()
-		self.model = TaskListModel(rows)
+	def create_model(self):
+		rows = self.records()
+		model = TestGridModel(rows)
 		# Tel the DVC to use the model
-		self.dvc.AssociateModel(self.model)
+		self.AssociateModel(model)
 	
 	def bind_event(self):
 		SIG_TASK_RESULT.connect(self.on_task_result)
 
 	def on_task_result(self, dat):
-		wx.CallAfter(self.update_status, dat)
+		wx.CallAfter(self.refresh_status, dat)
 
-	def update_status(self, dat):
+	def refresh_status(self, dat):
 		result = dat['result']
 		rec = dat['rec']
 		rec[4] = 1 if result else 0 # set valid field
 		self.update_record(rec)
-		self.model.update_row(rec)
+
+	def records(self):
+		db = Database()
+		rows = db.query('ippool_all')
+		rows = rows.as_dict()
+		rows = [ [i, d['ip'], d['port'], d['conn_type'], d['valid'] ] for i, d in enumerate(rows)]
+		return rows
+	
+	def update_record(self, rec):
+		model = self.GetModel()
+		ip = rec[1]
+		port = rec[2]
+		valid = rec[4]
+		db = Database()
+		rows = db.query('ippool_update_valid', ip=ip, port=port, valid=valid)
+		model.update_row(rec)
 
 	def do_task(self, rec):
 		ip = rec[1]
@@ -77,30 +90,30 @@ class TaskPanel(wx.Panel):
 		result = True if r.status_code == 200 else False
 		SIG_TASK_RESULT.send({'rec': rec, 'result': result})
 		SIG_REFRESH.send(self)
+	
+	def test(self, i):
+		print(i)
+		# time.sleep(3)
+		return 'process %s return!'%i
 
 	def start_worker(self):
-		self.load_data()
-		self.worker = TaskWorkerThread(self.model.data, self.do_task)
-		self.worker.start()
+		print( 'start in %s processes' % multiprocessing.cpu_count() )
+
+		pool = multiprocessing.Pool()
+		arr = range(300)
+		pool.map_async(self.test, arr)
+		pool.close()
+		pool.join()
+
+		print('start_worker end')
+
+		# self.worker = TaskWorkerThread(self.model.data, self.do_task)
+		# self.worker.start()
 
 	def stop_worker(self):
 		self.worker.stop()
 
-	def get_all_record(self):
-		db = Database()
-		rows = db.query('ippool_all')
-		rows = rows.as_dict()
-		rows = [ [i, d['ip'], d['port'], d['conn_type'], d['valid'] ] for i, d in enumerate(rows)]
-		return rows
-	
-	def update_record(self, rec):
-		ip = rec[1]
-		port = rec[2]
-		valid = rec[4]
-		db = Database()
-		rows = db.query('ippool_update_valid', ip=ip, port=port, valid=valid)
-
-class TaskListModel(dv.DataViewIndexListModel):
+class TestGridModel(dv.DataViewIndexListModel):
 	def __init__(self, data):
 		dv.DataViewIndexListModel.__init__(self, len(data))
 		self.data = data

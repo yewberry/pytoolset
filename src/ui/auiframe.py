@@ -14,9 +14,6 @@ ID_IPPOOL_START = ID_MY_CUST + 1
 ID_IPPOOL_VALID = ID_MY_CUST + 2
 ID_CUST_TOOLBAR = ID_MY_CUST + 3
 
-# Define a translation function
-_ = wx.GetTranslation
-
 class AuiFrame(wx.Frame):
 
 	def __init__(self, parent, id=wx.ID_ANY, title="", pos= wx.DefaultPosition,
