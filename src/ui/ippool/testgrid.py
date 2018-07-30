@@ -1,13 +1,11 @@
 import time
 import multiprocessing
 import threading
-from multiprocessing.dummy import Pool as ThreadPool
 import wx
 import wx.dataview as dv
 import requests
 from blinker import signal
 
-import zw.images as images
 from zw.database import Database
 import zw.logger as logger
 
@@ -36,79 +34,18 @@ class TestGrid(dv.DataViewCtrl):
 			# c.Alignment = wx.ALIGN_CENTER
 			# c.Renderer.Alignment = wx.ALIGN_CENTER
 		
-		self.create_model()
-		self.bind_event()
-		self.start_worker()
-
-	def create_model(self):
-		rows = self.records()
-		model = TestGridModel(rows)
-		# Tel the DVC to use the model
-		self.AssociateModel(model)
-	
-	def bind_event(self):
+		self.AssociateModel(TestGridModel.instance())
 		SIG_TASK_RESULT.connect(self.on_task_result)
 
-	def on_task_result(self, dat):
-		wx.CallAfter(self.refresh_status, dat)
-
-	def refresh_status(self, dat):
-		result = dat['result']
-		rec = dat['rec']
-		rec[4] = 1 if result else 0 # set valid field
-		self.update_record(rec)
-
-	def records(self):
-		db = Database()
-		rows = db.query('ippool_all')
-		rows = rows.as_dict()
-		rows = [ [i, d['ip'], d['port'], d['conn_type'], d['valid'] ] for i, d in enumerate(rows)]
-		return rows
-	
-	def update_record(self, rec):
-		model = self.GetModel()
-		ip = rec[1]
-		port = rec[2]
-		valid = rec[4]
-		db = Database()
-		rows = db.query('ippool_update_valid', ip=ip, port=port, valid=valid)
-		model.update_row(rec)
-
-	def do_task(self, rec):
-		ip = rec[1]
-		port = rec[2]
-		conn_type = rec[3]
-		conn_type = conn_type.lower() if conn_type else 'http'
-		proxies = {'http': 'http://%s:%s' % (ip, port)} if conn_type == 'http' else\
-					 {'https': 'http://%s:%s' % (ip, port)}
-		try:
-			r = requests.get('http://www.baidu.com', proxies=proxies, timeout=5)
-		except:
-			SIG_TASK_RESULT.send({'rec': rec, 'result': False})
-			SIG_REFRESH.send(self)
-			return
-		result = True if r.status_code == 200 else False
-		SIG_TASK_RESULT.send({'rec': rec, 'result': result})
-		SIG_REFRESH.send(self)
-	
-	def test(self, i):
-		print(i)
-		# time.sleep(3)
-		return 'process %s return!'%i
+	def on_task_result(self, rec):
+		wx.CallAfter(self.refresh_status, rec)
+	def refresh_status(self, rec):
+		self.GetModel().update(rec)
 
 	def start_worker(self):
-		print( 'start in %s processes' % multiprocessing.cpu_count() )
-
-		pool = multiprocessing.Pool()
-		arr = range(300)
-		pool.map_async(self.test, arr)
-		pool.close()
-		pool.join()
-
-		print('start_worker end')
-
-		# self.worker = TaskWorkerThread(self.model.data, self.do_task)
-		# self.worker.start()
+		model = self.GetModel()
+		self.worker = WorkerThread(worker, model.data)
+		self.worker.start()
 
 	def stop_worker(self):
 		self.worker.stop()
@@ -117,7 +54,26 @@ class TestGridModel(dv.DataViewIndexListModel):
 	def __init__(self, data):
 		dv.DataViewIndexListModel.__init__(self, len(data))
 		self.data = data
-		
+		self.cols = ['id', 'ip', 'port', 'conn_type', 'valid']
+	
+	@classmethod
+	def instance(cls):
+		db = Database()
+		rows = db.query('ippool_all')
+		rows = rows.as_dict()
+		db.close()
+		return TestGridModel(rows)
+
+	def update(self, rec):
+		for i,p in enumerate(self.data):
+			if p['id'] == rec['id']:
+				db = Database()
+				db.query('ippool_update_valid', id=rec['id'], valid=rec['valid'])
+				db.close()
+				self.data[i] = rec
+				self.RowChanged(i)
+				break
+
 	def GetColumnType(self, col):
 		'''
 		string bool datetime
@@ -125,10 +81,11 @@ class TestGridModel(dv.DataViewIndexListModel):
 		return 'string'
 
 	def GetValueByRow(self, row, col):
-		return self.data[row][col]
+		col_name = self.cols[col]
+		return self.data[row][col_name]
 	
 	def GetColumnCount(self):
-		return len(self.data[0])
+		return len(self.cols)
 	
 	def GetCount(self):
 		return len(self.data)
@@ -147,39 +104,51 @@ class TestGridModel(dv.DataViewIndexListModel):
 			item2, item1 = item1, item2
 		row1 = self.GetRow(item1)
 		row2 = self.GetRow(item2)
-		return self.data[row1][col] < self.data[row2][col]
+		row1 = self.data[row1]
+		row2 = self.data[row2]
+		label = self.cols[col]
+		return row1[label] < row2[label]
 
-	def update_row(self, rec):
-		idx = rec[0]
-		self.data[idx][4] = rec[4]*100
-		self.RowChanged(idx)
+def worker(o):
+	rtn = o
+	ip = o['ip']
+	port = o['port']
+	conn_type = o['conn_type'].lower()
+	proxies = {'http': 'http://%s:%s' % (ip, port)} if conn_type == 'http' else\
+				{'https': 'http://%s:%s' % (ip, port)}
+	try:
+		r = requests.get('http://www.baidu.com', proxies=proxies, timeout=5)
+		rtn['valid'] = 100 if r.status_code == 200 else 0
+	except:
+		rtn['valid'] = 0
+	return rtn
 
-class TaskWorkerThread(threading.Thread):
-	def __init__(self, dat, proc_func, interval=3, pool_size=3):
-		super(TaskWorkerThread, self).__init__()
+class WorkerThread(threading.Thread):
+	def __init__(self, func, dat, interval=1, step=5):
+		super(WorkerThread, self).__init__()
+		self.func = func
 		self.dat = dat
-		self.proc_func = proc_func
 		self.interval = interval
-		self.pool_size = pool_size
+		self.step = step
 		self.thread_stop = False
 
 	def run(self):
 		self.thread_stop = False
-		LOG.debug('Start task thread')
-		step = 5
+		LOG.debug('Start task thread in %s processes' % multiprocessing.cpu_count())
 		proxys = []
-		for idx, proxy in enumerate(self.dat):
+		for idx, p in enumerate(self.dat):
 			if self.thread_stop:
 				break
-			proxy.append(idx)
-			proxys.append(proxy)
-			if idx % step == 0:
-				pool = ThreadPool(self.pool_size)
-				results = pool.map(self.proc_func, proxys)
-				# close the pool and wait for the work to finish
+			proxys.append(p)
+			if idx % self.step == 0:
+				pool = multiprocessing.Pool()
+				for r in pool.map_async(self.func, proxys).get():
+					SIG_TASK_RESULT.send(r)
 				pool.close()
 				pool.join()
+
 				proxys[:] = []
+				SIG_REFRESH.send(self)
 				time.sleep(self.interval)
 		LOG.debug('Finish task thread')
 

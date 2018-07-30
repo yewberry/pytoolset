@@ -1,6 +1,7 @@
 import wx
 import wx.lib.agw.aui as aui
-from ui.sizereportctrl import SizeReportCtrl
+from blinker import signal
+
 from ui.perspective import Perspective
 from ui.ippool.ledpanel import LEDPanel
 from ui.ippool.ipgrid import IPGrid
@@ -18,6 +19,8 @@ PANE_IDS = [
 	'IPPOOL_LOGWND'
 ]
 
+SIG_LOG = signal('log')
+
 class IPPoolPerspective(Perspective):
 	def __init__(self, parent, mgr):
 		Perspective.__init__(self, parent, mgr)
@@ -26,6 +29,8 @@ class IPPoolPerspective(Perspective):
 		self.led_panel = LEDPanel(self._par)
 		self.ip_grid = IPGrid(self._par)
 		self.tt_grid = TestGrid(self._par)
+		self.log_wnd = wx.TextCtrl(self._par, -1, style=wx.TE_MULTILINE|wx.TE_READONLY)
+
 		# add a bunch of panes
 		self._mgr.AddPane(self.led_panel, aui.AuiPaneInfo().Name(PANE_IDS[1]).CaptionVisible(False).
 						BestSize(wx.Size(200,50)).MinSize(wx.Size(200,50)).
@@ -36,9 +41,11 @@ class IPPoolPerspective(Perspective):
 						BestSize(wx.Size(400,100)).MinSize(wx.Size(400,100)).
 						Right().Position(0).CloseButton(False).MaximizeButton(True))
 
-		self._mgr.AddPane(SizeReportCtrl.create(self._par, self._mgr), aui.AuiPaneInfo().
-						  Name(PANE_IDS[4]).Caption( _('Message') ).
+		
+		self._mgr.AddPane(self.log_wnd, aui.AuiPaneInfo().Name(PANE_IDS[4]).Caption( _('Message') ).
 						  Right().Position(1).CloseButton(False).MaximizeButton(True))
+		
+		SIG_LOG.connect(self.on_log)
 	
 	def create_toolbar(self):
 		tb1 = aui.AuiToolBar(self._par, -1, wx.DefaultPosition, wx.DefaultSize,
@@ -56,4 +63,8 @@ class IPPoolPerspective(Perspective):
 	def setup_perspective(self):
 		for p in PANE_IDS:
 			self._mgr.GetPane(p).Show()
+	
+	def on_log(self, dat):
+		s = '%s\n' % dat
+		wx.CallAfter(self.log_wnd.write, s)
 

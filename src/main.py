@@ -1,3 +1,4 @@
+import os
 import sys
 import traceback
 import multiprocessing
@@ -10,6 +11,11 @@ from ui.app import App
 LOG = logger.getLogger(__name__)
 def main():
 	LOG.debug('sys.path:'+str(sys.path))
+	'''
+	workarount for this bug
+	https://blog.yimingliu.com/2015/07/22/python-multiprocessing-code-crashes-on-os-x-under-ipython/
+	'''
+	os.environ["no_proxy"] = "*"
 	try:
 		LOG.debug('App start...')
 		app = App(redirect=False)
