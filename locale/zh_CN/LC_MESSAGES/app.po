@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: \n"
-"POT-Creation-Date: 2018-07-24 15:12+0800\n"
-"PO-Revision-Date: 2018-07-24 15:12+0800\n"
+"POT-Creation-Date: 2018-07-31 14:38+0800\n"
+"PO-Revision-Date: 2018-07-31 14:38+0800\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: zh_CN\n"
@@ -22,10 +22,65 @@ msgstr "个人Python工具集"
 msgid "S&witch Window..."
 msgstr "切换窗口"
 
-#: ui/ippool/ippool.py:33
-msgid "Proxy testing"
-msgstr ""
+#: ui/auiframe.py:49
+msgid "Exit"
+msgstr "退出"
 
-#: ui/ippool/ippool.py:38
-msgid "Logger"
-msgstr "日志消息"
+#: ui/auiframe.py:50
+msgid "File"
+msgstr "文件"
+
+#: ui/ippool/ipgrid.py:18
+msgid "Cty"
+msgstr "国家"
+
+#: ui/ippool/ipgrid.py:19
+msgid "IP Addr"
+msgstr "IP地址"
+
+#: ui/ippool/ipgrid.py:20 ui/ippool/testgrid.py:26
+msgid "Port"
+msgstr "端口"
+
+#: ui/ippool/ipgrid.py:21
+msgid "Server"
+msgstr "服务器"
+
+#: ui/ippool/ipgrid.py:22
+msgid "Speed"
+msgstr "速度"
+
+#: ui/ippool/ipgrid.py:23 ui/ippool/testgrid.py:27
+msgid "Type"
+msgstr "类型"
+
+#: ui/ippool/ippool.py:41
+msgid "Proxy testing"
+msgstr "测试代理"
+
+#: ui/ippool/ippool.py:46
+msgid "Message"
+msgstr "消息"
+
+#: ui/ippool/ippool.py:53
+msgid "Start IP Pool"
+msgstr "启动代理抓取"
+
+#: ui/ippool/ippool.py:54
+msgid "Start IP Test"
+msgstr "启动代理测试"
+
+#: ui/ippool/ippool.py:56
+msgid "IP Pool"
+msgstr "IP池"
+
+#: ui/ippool/testgrid.py:25
+msgid "IP"
+msgstr "IP"
+
+#: ui/ippool/testgrid.py:28
+msgid "Result"
+msgstr "结果"
+
+#~ msgid "Logger"
+#~ msgstr "日志消息"

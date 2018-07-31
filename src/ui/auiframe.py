@@ -1,11 +1,17 @@
 import wx
 import wx.lib.agw.aui as aui
 from wx.lib.agw.aui import aui_switcherdialog as ASD
-from ui.ippool.ippool import IPPoolPerspective
-from ui.sizereportctrl import SizeReportCtrl
+
+import wx.adv
+from version import VER
 
 import zw.images as images
 import zw.logger as logger
+
+import ui.ids as ids
+from ui.ippool.ippool import IPPoolPerspective
+from ui.sizereportctrl import SizeReportCtrl
+
 LOG = logger.getLogger(__name__)
 
 ID_MY_CUST = wx.ID_HIGHEST + 1
@@ -23,21 +29,20 @@ class AuiFrame(wx.Frame):
 		self._mgr = aui.AuiManager()
 		# tell AuiManager to manage this frame
 		self._mgr.SetManagedWindow(self)
-		# set frame icon
-		self.SetIcon(images.zhao.GetIcon())
-
-		self.ippool = IPPoolPerspective(self, self._mgr)
+		self.perspectives = []
+		self.perspectives.append(IPPoolPerspective(self, self._mgr))
+		self.tb = None
 
 		self.create_menubar()
 		self.create_toolbar()
 		self.create_statusbar()
 		self.create_panes()
 		self.bind_events()
+		self.SetIcon(images.zhao.GetIcon())
 
 	def create_menubar(self):
 		# create menu
 		mb = wx.MenuBar()
-
 		file_menu = wx.Menu()
 		if wx.Platform == "__WXMAC__":
 			switcherAccel = "Alt+Tab"
@@ -46,79 +51,72 @@ class AuiFrame(wx.Frame):
 		else:
 			switcherAccel = "Ctrl+Tab"
 		file_menu.Append(ID_SWITCH_PANE, _("S&witch Window...") + "\t" + switcherAccel)
-		file_menu.Append(wx.ID_EXIT, "Exit")
+		file_menu.Append(wx.ID_EXIT, _('Exit'))
+		mb.Append(file_menu, _('File'))
 
-		ippool_menu = wx.Menu()
-		ippool_menu.Append(ID_IPPOOL_START, "Create Text Control")
-		ippool_menu.Append(ID_IPPOOL_VALID, "Create HTML Control")
-		ippool_menu.AppendSeparator()
-
-		mb.Append(file_menu, "File")
-		mb.Append(ippool_menu, "IP Pool")
-
+		for p in self.perspectives:
+			menu_arr = p.create_menu()
+			for m in menu_arr:
+				title = m['title']
+				menu = m['menu']
+				mb.Append(menu, title)
+		
 		self.SetMenuBar(mb)
 	
 	def create_toolbar(self):
-		# prepare a few custom overflow elements for the toolbars' overflow buttons
-		prepend_items, append_items = [], []
-		item = aui.AuiToolBarItem()
-
-		item.SetKind(wx.ITEM_SEPARATOR)
-		append_items.append(item)
-
-		item = aui.AuiToolBarItem()
-		item.SetKind(wx.ITEM_NORMAL)
-		item.SetId(ID_CUST_TOOLBAR)
-		item.SetLabel("Customize...")
-		append_items.append(item)
-
-		# create some toolbars
-		tb1 = aui.AuiToolBar(self, -1, wx.DefaultPosition, wx.DefaultSize,
+		for p in self.perspectives:
+			p.create_toolbar()
+		
+		# create sys toolbars
+		self.tb = tb = aui.AuiToolBar(self, -1, wx.DefaultPosition, wx.DefaultSize,
 							 agwStyle=aui.AUI_TB_DEFAULT_STYLE | aui.AUI_TB_OVERFLOW)
-		tb1.SetToolBitmapSize(wx.Size(48, 48))
-		tb1.AddSimpleTool(wx.ID_ANY, "Test", wx.ArtProvider.GetBitmap(wx.ART_ERROR))
-		tb1.AddSeparator()
-		tb1.AddSimpleTool(wx.ID_ANY, "Test", wx.ArtProvider.GetBitmap(wx.ART_QUESTION))
-		tb1.AddSimpleTool(wx.ID_ANY, "Test", wx.ArtProvider.GetBitmap(wx.ART_INFORMATION))
-		tb1.AddSimpleTool(wx.ID_ANY, "Test", wx.ArtProvider.GetBitmap(wx.ART_WARNING))
-		tb1.AddSimpleTool(wx.ID_ANY, "Test", wx.ArtProvider.GetBitmap(wx.ART_HELP))
-		tb1.SetCustomOverflowItems(prepend_items, append_items)
-		tb1.Realize()
-
-		# add the toolbars to the manager
-		self._mgr.AddPane(tb1, aui.AuiPaneInfo().Name("sys_tb1").Caption("Big Toolbar").ToolbarPane().Top())
-
-		self.ippool.create_toolbar()
+		tb.SetToolBitmapSize(wx.Size(48, 48))
+		tb.AddSimpleTool(wx.ID_ABOUT , _('About'), images.zhao32.GetBitmap(), short_help_string=_('About'))
+		tb.Realize()
+		# perspective.py alway show toolbar which start with sys_
+		self._mgr.AddPane(tb, aui.AuiPaneInfo().Name('sys_tb1').Caption(_('System')).ToolbarPane().Top())
 
 	def create_statusbar(self):
 		self.statusbar = self.CreateStatusBar(2, wx.STB_SIZEGRIP)
 		self.statusbar.SetStatusWidths([-2, -3])
 		self.statusbar.SetStatusText("Ready", 0)
-		self.statusbar.SetStatusText("Welcome To wxPython!", 1)	
+
+		for p in self.perspectives:
+			p.create_status()
 
 	def create_panes(self):
 		# min size for the frame itself isn't completely done.
 		# see the end up AuiManager.Update() for the test
 		# code. For now, just hard code a frame minimum size
 		self.SetMinSize(wx.Size(400, 300))
-		
-		self.ippool.create_panes()		
 
-		perspective_default = self.ippool.get_perspective()
+		for p in self.perspectives:
+			p.create_panes()	
+
+		perspective_default = self.perspectives[0].get_perspective()
 		self._mgr.LoadPerspective(perspective_default)
 
 		# "commit" all changes made to AuiManager
 		self._mgr.Update()	
 
 	def bind_events(self):
-		pass
+		for p in self.perspectives:
+			p.bind_events()
+		
+		self.Bind(wx.EVT_CLOSE, self.on_close)
+		self.Bind(wx.EVT_TOOL, self.on_about, id=wx.ID_ABOUT)
 
-	def __del__(self):
-		pass
-
-
-	def OnClose(self, event):
+	def on_close(self, event):
 		self._mgr.UnInit()
 		event.Skip()
 
+	def on_about(self, event):
+		info = wx.adv.AboutDialogInfo()
+		info.Name = _('PyToolset')
+		info.Version = VER
+		info.Copyright = '(c) 2017-2018 Zhao Wei'
+		info.Description = _('A Python toolset of web crawler for personal use.')
+		info.WebSite = ('https://github.com/yewberry/pytoolset', 'Github home page')
+		info.Developers = ['Zhao Wei (yew1998@gmail.com)']
+		wx.adv.AboutBox(info)
 

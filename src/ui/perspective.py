@@ -12,12 +12,24 @@ class Perspective:
 	@abstractmethod
 	def create_panes(self):
 		pass
+
+	@abstractmethod
+	def setup_perspective(self):
+		pass
 	
+	def create_menu(self):
+		'''
+		:return:[ {title:string, menu: wx.Menu} ] 
+		'''
+		pass
+
 	def create_toolbar(self):
 		pass
 	
-	@abstractmethod
-	def setup_perspective(self):
+	def create_status(self):
+		pass
+	
+	def bind_events(self):
 		pass
 	
 	def get_perspective(self):

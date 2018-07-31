@@ -35,7 +35,8 @@ class TestGrid(dv.DataViewCtrl):
 			# c.Renderer.Alignment = wx.ALIGN_CENTER
 		
 		self.AssociateModel(TestGridModel.instance())
-		SIG_TASK_RESULT.connect(self.on_task_result)
+		#SIG_TASK_RESULT.connect(self.on_task_result)
+		self.start_worker()
 
 	def on_task_result(self, rec):
 		wx.CallAfter(self.refresh_status, rec)
@@ -44,7 +45,7 @@ class TestGrid(dv.DataViewCtrl):
 
 	def start_worker(self):
 		model = self.GetModel()
-		self.worker = WorkerThread(worker, model.data)
+		self.worker = WorkerThread(model.data)
 		self.worker.start()
 
 	def stop_worker(self):
@@ -111,23 +112,27 @@ class TestGridModel(dv.DataViewIndexListModel):
 
 def worker(o):
 	rtn = o
-	ip = o['ip']
-	port = o['port']
-	conn_type = o['conn_type'].lower()
+	ip = rtn['ip']
+	port = rtn['port']
+	conn_type = rtn['conn_type'].lower()
 	proxies = {'http': 'http://%s:%s' % (ip, port)} if conn_type == 'http' else\
 				{'https': 'http://%s:%s' % (ip, port)}
+	
+	session = requests.Session()
+	session.trust_env = False # Don't read proxy settings from OS
+
 	try:
-		r = requests.get('http://www.baidu.com', proxies=proxies, timeout=5)
+		r = session.get('http://www.baidu.com', timeout=5)
 		rtn['valid'] = 100 if r.status_code == 200 else 0
 	except:
 		rtn['valid'] = 0
+	print(rtn)
 	return rtn
 
 class WorkerThread(threading.Thread):
-	def __init__(self, func, dat, interval=1, step=5):
+	def __init__(self, data, interval=5, step=5):
 		super(WorkerThread, self).__init__()
-		self.func = func
-		self.dat = dat
+		self.dat = data
 		self.interval = interval
 		self.step = step
 		self.thread_stop = False
@@ -142,13 +147,14 @@ class WorkerThread(threading.Thread):
 			proxys.append(p)
 			if idx % self.step == 0:
 				pool = multiprocessing.Pool()
-				for r in pool.map_async(self.func, proxys).get():
-					SIG_TASK_RESULT.send(r)
+				for r in pool.map_async(worker, proxys).get():
+					a = 0
+					#SIG_TASK_RESULT.send(r)
 				pool.close()
 				pool.join()
 
 				proxys[:] = []
-				SIG_REFRESH.send(self)
+				#SIG_REFRESH.send(self)
 				time.sleep(self.interval)
 		LOG.debug('Finish task thread')
 
