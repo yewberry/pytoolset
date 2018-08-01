@@ -10,7 +10,7 @@ from zw.database import Database
 import zw.logger as logger
 
 LOG = logger.getLogger(__name__)
-SIG_TASK_RESULT = signal('task_result')
+SIG_TEST_RESULT = signal('test_result')
 SIG_REFRESH = signal('refresh')
 
 class TestGrid(dv.DataViewCtrl):
@@ -35,14 +35,18 @@ class TestGrid(dv.DataViewCtrl):
 			# c.Renderer.Alignment = wx.ALIGN_CENTER
 		
 		self.AssociateModel(TestGridModel.instance())
-		#SIG_TASK_RESULT.connect(self.on_task_result)
+		SIG_TEST_RESULT.connect(self.on_task_result)
 		self.start_worker()
 
-	def on_task_result(self, rec):
-		wx.CallAfter(self.refresh_status, rec)
-	def refresh_status(self, rec):
-		self.GetModel().update(rec)
-
+	def on_task_result(self, o):
+		wx.CallAfter(self.refresh_status, o)
+	def refresh_status(self, o):
+		rec = o['rec']
+		LOG.debug('%s:%s %s'%(rec['ip'], rec['valid'], o['dirty']))
+		if o['dirty']:
+			self.GetModel().update(o)
+			SIG_REFRESH.send(self)
+		
 	def start_worker(self):
 		model = self.GetModel()
 		self.worker = WorkerThread(model.data)
@@ -50,6 +54,51 @@ class TestGrid(dv.DataViewCtrl):
 
 	def stop_worker(self):
 		self.worker.stop()
+
+def worker(o):
+	rtn = o['rec']
+	ip = rtn['ip']
+	port = rtn['port']
+	valid = rtn['valid']
+	conn_type = rtn['conn_type'].lower()
+	proxies = {'http': 'http://%s:%s' % (ip, port)} if conn_type == 'http' else\
+				{'https': 'http://%s:%s' % (ip, port)}
+	
+	session = requests.Session()
+	session.trust_env = False # Don't read proxy settings from OS
+	try:
+		r = session.get('http://www.baidu.com', proxies=proxies, timeout=5)
+		rtn['valid'] = 100 if r.status_code == 200 else 0
+	except:
+		rtn['valid'] = 0
+	print(rtn)
+	return {'rec': rtn, 'idx':o['idx'], 'dirty':True if valid!=rtn['valid'] else False}
+
+class WorkerThread(threading.Thread):
+	def __init__(self, data):
+		super(WorkerThread, self).__init__()
+		self.dat = data
+		self.thread_stop = False
+
+	def run(self):
+		self.thread_stop = False
+		cores = multiprocessing.cpu_count()
+		pool = multiprocessing.Pool(processes=cores)
+		LOG.debug('Start task thread in %s processes' % cores)
+
+		for i,p in enumerate(self.dat):
+			if self.thread_stop:
+				break
+			r = pool.apply_async( worker, ({'rec':p, 'idx':i},))
+			r = r.get()
+			#SIG_TEST_RESULT.send(r)
+
+		pool.close()
+		pool.join()
+		LOG.debug('Finish task thread')
+
+	def stop(self):
+		self.thread_stop = True
 
 class TestGridModel(dv.DataViewIndexListModel):
 	def __init__(self, data):
@@ -65,15 +114,14 @@ class TestGridModel(dv.DataViewIndexListModel):
 		db.close()
 		return TestGridModel(rows)
 
-	def update(self, rec):
-		for i,p in enumerate(self.data):
-			if p['id'] == rec['id']:
-				db = Database()
-				db.query('ippool_update_valid', id=rec['id'], valid=rec['valid'])
-				db.close()
-				self.data[i] = rec
-				self.RowChanged(i)
-				break
+	def update(self, o):
+		idx = o['idx']
+		rec = o['rec']
+		db = Database()
+		db.query('ippool_update_valid', id=rec['id'], valid=rec['valid'])
+		db.close()
+		self.data[idx] = rec
+		self.RowChanged(idx)
 
 	def GetColumnType(self, col):
 		'''
@@ -110,53 +158,3 @@ class TestGridModel(dv.DataViewIndexListModel):
 		label = self.cols[col]
 		return row1[label] < row2[label]
 
-def worker(o):
-	rtn = o
-	ip = rtn['ip']
-	port = rtn['port']
-	conn_type = rtn['conn_type'].lower()
-	proxies = {'http': 'http://%s:%s' % (ip, port)} if conn_type == 'http' else\
-				{'https': 'http://%s:%s' % (ip, port)}
-	
-	session = requests.Session()
-	session.trust_env = False # Don't read proxy settings from OS
-
-	try:
-		r = session.get('http://www.baidu.com', timeout=5)
-		rtn['valid'] = 100 if r.status_code == 200 else 0
-	except:
-		rtn['valid'] = 0
-	print(rtn)
-	return rtn
-
-class WorkerThread(threading.Thread):
-	def __init__(self, data, interval=5, step=5):
-		super(WorkerThread, self).__init__()
-		self.dat = data
-		self.interval = interval
-		self.step = step
-		self.thread_stop = False
-
-	def run(self):
-		self.thread_stop = False
-		LOG.debug('Start task thread in %s processes' % multiprocessing.cpu_count())
-		proxys = []
-		for idx, p in enumerate(self.dat):
-			if self.thread_stop:
-				break
-			proxys.append(p)
-			if idx % self.step == 0:
-				pool = multiprocessing.Pool()
-				for r in pool.map_async(worker, proxys).get():
-					a = 0
-					#SIG_TASK_RESULT.send(r)
-				pool.close()
-				pool.join()
-
-				proxys[:] = []
-				#SIG_REFRESH.send(self)
-				time.sleep(self.interval)
-		LOG.debug('Finish task thread')
-
-	def stop(self):
-		self.thread_stop = True

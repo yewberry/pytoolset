@@ -77,7 +77,7 @@ class IPPoolPerspective(Perspective):
 	
 	def on_ip_test(self, evt):
 		pass
-		# self.tt_grid.start_worker()
+		#self.tt_grid.start_worker()
 	
 	def on_log(self, dat):
 		s = '%s\n' % dat
