@@ -34,6 +34,7 @@ class TestGrid(dv.DataViewCtrl):
 			# c.Alignment = wx.ALIGN_CENTER
 			# c.Renderer.Alignment = wx.ALIGN_CENTER
 		
+		self.count = 0
 		self.AssociateModel(TestGridModel.instance())
 		SIG_TEST_RESULT.connect(self.on_task_result)
 		self.start_worker()
@@ -42,7 +43,9 @@ class TestGrid(dv.DataViewCtrl):
 		wx.CallAfter(self.refresh_status, o)
 	def refresh_status(self, o):
 		rec = o['rec']
-		LOG.debug('%s:%s %s'%(rec['ip'], rec['valid'], o['dirty']))
+		self.count += 1
+		LOG.debug('[%s]%s:%s %s'%(self.count, rec['ip'], rec['valid'], o['dirty']))
+		
 		if o['dirty']:
 			self.GetModel().update(o)
 			SIG_REFRESH.send(self)
@@ -56,6 +59,7 @@ class TestGrid(dv.DataViewCtrl):
 		self.worker.stop()
 
 def worker(o):
+	#print(o)
 	rtn = o['rec']
 	ip = rtn['ip']
 	port = rtn['port']
@@ -71,7 +75,7 @@ def worker(o):
 		rtn['valid'] = 100 if r.status_code == 200 else 0
 	except:
 		rtn['valid'] = 0
-	print(rtn)
+	#print(rtn)
 	return {'rec': rtn, 'idx':o['idx'], 'dirty':True if valid!=rtn['valid'] else False}
 
 class WorkerThread(threading.Thread):
@@ -91,7 +95,7 @@ class WorkerThread(threading.Thread):
 				break
 			r = pool.apply_async( worker, ({'rec':p, 'idx':i},))
 			r = r.get()
-			#SIG_TEST_RESULT.send(r)
+			SIG_TEST_RESULT.send(r)
 
 		pool.close()
 		pool.join()
