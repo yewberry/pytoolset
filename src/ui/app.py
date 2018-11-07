@@ -43,18 +43,18 @@ class App(wx.App):
 		# init db
 		Database(cfg['database']).init_db()
 
-		from ui.ribbonframe import RibbonFrame
+		# from ui.ribbonframe import RibbonFrame
 		# frm = RibbonFrame(None, -1, '爬虫工具集 v0.1 yew1998@gmail.com', size=(1024, 768))
 		# frm.Show()
 		from ui.auiframe import AuiFrame
 		frm = AuiFrame(None, -1, _('Personal Python Tools'), size=(1024, 768))
-		frm.Show()		
+		frm.Show()
 		
 		LOG.debug('Elapsed time: %f ms' % t.end())
 		return True
 
 	def OnExit(self):
-		# exit but main process still there why?
+		# TODO exit but main process still there why?
 		wx.Exit()
 
 

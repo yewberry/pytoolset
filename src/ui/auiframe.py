@@ -30,7 +30,7 @@ class AuiFrame(wx.Frame):
 		# tell AuiManager to manage this frame
 		self._mgr.SetManagedWindow(self)
 		self.perspectives = []
-		self.perspectives.append(IPPoolPerspective(self, self._mgr))
+		# self.perspectives.append(IPPoolPerspective(self, self._mgr))
 		self.tb = None
 
 		self.create_menubar()
@@ -91,10 +91,11 @@ class AuiFrame(wx.Frame):
 		self.SetMinSize(wx.Size(400, 300))
 
 		for p in self.perspectives:
-			p.create_panes()	
-
-		perspective_default = self.perspectives[0].get_perspective()
-		self._mgr.LoadPerspective(perspective_default)
+			p.create_panes()
+		
+		if len(self.perspectives) > 0:
+			perspective_default = self.perspectives[0].get_perspective()
+			self._mgr.LoadPerspective(perspective_default)
 
 		# "commit" all changes made to AuiManager
 		self._mgr.Update()	
@@ -115,7 +116,7 @@ class AuiFrame(wx.Frame):
 		info.Name = _('PyToolset')
 		info.Version = VER
 		info.Copyright = '(c) 2017-2018 Zhao Wei'
-		info.Description = _('A Python toolset of web crawler for personal use.')
+		info.Description = _('A Python toolset for personal use.')
 		info.WebSite = ('https://github.com/yewberry/pytoolset', 'Github home page')
 		info.Developers = ['Zhao Wei (yew1998@gmail.com)']
 		wx.adv.AboutBox(info)

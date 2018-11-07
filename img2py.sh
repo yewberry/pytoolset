@@ -1,1 +1,0 @@
-./venv/bin/python ./src/zw/images.py
