@@ -2,9 +2,17 @@ import logging
 import logging.config
 from pathlib import Path
 import zw.utils as utils
-from blinker import signal
 
-SIG_LOG = signal('log')
+EVT_WX_LOG_EVENT = None
+WxLogEvent = None
+try:
+	import wx
+	import wx.lib.newevent
+	WxLogEvent, EVT_WX_LOG_EVENT = wx.lib.newevent.NewEvent()
+
+except Exception as e:
+	EVT_WX_LOG_EVENT = None
+	WxLogEvent = None
 
 LOG_DIR = 'logs'
 if utils.isMacOS():
@@ -17,7 +25,9 @@ class MyEventHandler(logging.Handler):
 
 	def emit(self, record):
 		msg = self.format(record)
-		SIG_LOG.send(msg)
+		if EVT_WX_LOG_EVENT is not None:
+			evt = WxLogEvent(msg=msg)
+			wx.PostEvent(wx.App.Get(), evt)
 
 def getLogger(name=__name__):
 	'''Get logger with name'''

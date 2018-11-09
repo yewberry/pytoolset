@@ -2,6 +2,7 @@ import os
 import sys
 import traceback
 import multiprocessing
+
 import zw.logger as logger
 # must set log file name before any class of my
 logger.LOG_FILE = 'app.log'
@@ -22,6 +23,8 @@ def main():
 			wx.lib.inspection.InspectionTool().Show()
 
 		app.MainLoop()
+		del app
+
 	except Exception as e:
 		traceback.print_exc()
 		sys.exit(1)

@@ -1,5 +1,6 @@
 import os
 import wx
+
 import zw.logger as logger
 from zw.utils import Timeit
 from zw.config import Config
