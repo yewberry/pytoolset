@@ -18,7 +18,23 @@ class Database():
 			"""CREATE TABLE IF NOT EXISTS ippool (id INT PRIMARY KEY NOT NULL AUTO_INCREMENT
 				, ip TEXT, port TEXT, country TEXT, city TEXT, speed FLOAT, valid INT DEFAULT 0
 				, conn_type TEXT, update_time TIMESTAMP NOT NULL DEFAULT 
-				CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)"""
+				CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)""",
+			"""
+			CREATE TABLE IF NOT EXISTS `factiva_source` (
+			`uid` CHAR(36) NOT NULL,
+			`name` VARCHAR(128) NOT NULL,
+			`lang_id` CHAR(36) NULL,
+			`cata_id` CHAR(36) NULL,
+			`loc_id` CHAR(36) NULL,
+			`indu_id` CHAR(36) NULL,
+			`desc` VARCHAR(1024) NULL,
+			`link` VARCHAR(1024) NULL,
+			`create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			`update_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+			`delete_flag` INT NOT NULL DEFAULT 0,
+			PRIMARY KEY (`uid`));
+			""",
+			
 		]
 	}
 	DB_SQL = {
