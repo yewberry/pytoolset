@@ -11,8 +11,10 @@ import zw.utils as utils
 LOG = logger.getLogger(__name__)
 
 class FactivaSpider:
-	def __init__(self, parent):
+	name = property(lambda s: s._name, lambda s, v: setattr(s, '_name', v))
+	def __init__(self, parent, name):
 		self.parent = parent
+		self.name = name
 		self.list = None
 
 	def get_center_pane(self):
@@ -20,9 +22,14 @@ class FactivaSpider:
 			self.list = FactivaListCtrl(self.parent, 
 									style=wx.LC_REPORT
 									| wx.BORDER_NONE)
-			self.list.InsertColumn(0, "Artist")
-			self.list.InsertColumn(1, "Title", wx.LIST_FORMAT_RIGHT)
-			self.list.InsertColumn(2, "Genre")
+			self.list.InsertColumn(0, _('name'))
+			self.list.InsertColumn(1, _('region'))
+			self.list.InsertColumn(2, _('country'))
+			self.list.InsertColumn(3, _('description'))
+			self.list.InsertColumn(4, _('source code'))
+			self.list.InsertColumn(5, _('language'))
+			self.list.InsertColumn(6, _('frequecy'))
+			self.list.InsertColumn(7, _('link'))
 		return self.list
 
 class FactivaListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin):

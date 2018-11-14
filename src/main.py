@@ -11,10 +11,10 @@ from ui.app import App
 
 LOG = logger.getLogger(__name__)
 def main():
-	LOG.debug('sys.path:'+str(sys.path))
+	LOG.info('sys.path:'+str(sys.path))
 
 	try:
-		LOG.debug('App start...')
+		LOG.info('App start...')
 		app = App(redirect=False)
 		app.SetExitOnFrameDelete(True)
 		
@@ -23,7 +23,6 @@ def main():
 			wx.lib.inspection.InspectionTool().Show()
 
 		app.MainLoop()
-		del app
 
 	except Exception as e:
 		traceback.print_exc()

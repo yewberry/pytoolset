@@ -62,7 +62,7 @@ def getLogger(name=__name__):
 			'eventmsg': {
 				'class': 'zw.logger.MyEventHandler',
 				'formatter': 'short',
-				'level': logging.DEBUG,
+				'level': logging.INFO,
 			}
 		},
 		'loggers': {

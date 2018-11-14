@@ -20,21 +20,23 @@ class Database():
 				, conn_type TEXT, update_time TIMESTAMP NOT NULL DEFAULT 
 				CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)""",
 			"""
-			CREATE TABLE IF NOT EXISTS `factiva_source` (
-			`uid` CHAR(36) NOT NULL,
-			`name` VARCHAR(128) NOT NULL,
-			`lang_id` CHAR(36) NULL,
-			`cata_id` CHAR(36) NULL,
-			`loc_id` CHAR(36) NULL,
-			`indu_id` CHAR(36) NULL,
-			`desc` VARCHAR(1024) NULL,
-			`link` VARCHAR(1024) NULL,
-			`create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			`update_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-			`delete_flag` INT NOT NULL DEFAULT 0,
-			PRIMARY KEY (`uid`));
-			""",
-			
+			CREATE TABLE IF NOT EXISTS `factiva_by_region` (
+			`uid` char(36) NOT NULL,
+			`name` varchar(128) NOT NULL,
+			`region` varchar(128) NOT NULL,
+			`country` varchar(128) NOT NULL,
+			`raw_text` text DEFAULT NULL,
+			`description` text DEFAULT NULL,
+			`source_code` varchar(128) NOT NULL,
+			`language` varchar(128) NOT NULL,
+			`frequecy` varchar(128) NOT NULL,
+			`link` varchar(1024) DEFAULT NULL,
+			`create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			`update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+			`delete_flag` int(11) NOT NULL DEFAULT '0',
+			PRIMARY KEY (`uid`)
+			) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+			"""
 		]
 	}
 	DB_SQL = {
@@ -44,6 +46,9 @@ class Database():
 		, 'ippool_insert': 'INSERT INTO ippool (ip, port, country, city, speed, conn_type) VALUES(:ip, :port, :country, :city, :speed, :conn_type)'
 		, 'ippool_update': 'UPDATE ippool SET country=:country, city=:city, speed=:speed, conn_type=:conn_type WHERE ip=:ip AND port=:port'
 		, 'ippool_update_valid': 'UPDATE ippool SET valid=:valid WHERE id=:id'
+		, 'spider_factiva_region_check': 'SELECT count(*) AS c FROM factiva_by_region WHERE uid=:uid'
+		, 'spider_factiva_region_insert': 'INSERT INTO factiva_by_region (uid, name, region, country, raw_text, description, source_code, language, frequecy, link) VALUES (:uid, :name, :region, :country, :raw_text, :description, :source_code, :language, :frequecy, :link)'
+		, 'spider_factiva_region_update': 'UPDATE factiva_by_region SET uid=:uid, name=:name, region=:region, country=:country, raw_text=:raw_text, description=:description, source_code=:source_code, language=:language, frequecy=:frequecy, link=:link WHERE uid=:uid'
 	}
 	DB_CFG_DEF = None
 	def __init__(self, o=None, set_cfg_def=True):

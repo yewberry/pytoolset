@@ -35,8 +35,9 @@ class AuiFrame(wx.Frame):
 		self.create_statusbar()
 		self.create_panes()
 		self.bind_events()
+		self.post_init()
 		self.SetIcon(images.zhao.GetIcon())
-		LOG.debug('MainFrame actual size: %s' % self.GetSize())
+		LOG.info('MainFrame actual size: %s' % self.GetSize())
 
 	def create_menubar(self):
 		# create menu
@@ -104,6 +105,10 @@ class AuiFrame(wx.Frame):
 
 		for p in self.perspectives:
 			p.bind_events()
+	
+	def post_init(self):
+		for p in self.perspectives:
+			p.post_init()
 
 	def on_close(self, evt):
 		self.mgr.UnInit()

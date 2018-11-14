@@ -30,6 +30,9 @@ class Perspective:
 	def bind_events(self):
 		pass
 	
+	def post_init(self):
+		pass
+	
 	def get_perspective(self):
 		self.hide_all_panes()
 		self.setup_perspective()
