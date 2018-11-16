@@ -57,7 +57,7 @@ def getLogger(name=__name__):
 				'maxBytes': 10485760, # 10M
 				'backupCount': 20,
 				'encoding': 'utf8',
-				'level': logging.DEBUG,
+				'level': logging.INFO,
 			},
 			'eventmsg': {
 				'class': 'zw.logger.MyEventHandler',
