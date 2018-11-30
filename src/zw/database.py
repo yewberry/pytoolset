@@ -27,6 +27,7 @@ class Database():
 			`region` varchar(128) NOT NULL,
 			`sub_region` varchar(128) NOT NULL,
 			`country` varchar(128) NOT NULL,
+			`district` varchar(128) NOT NULL,
 			`raw_text` text DEFAULT NULL,
 			`description` text DEFAULT NULL,
 			`source_code` varchar(128) NOT NULL,
@@ -48,9 +49,10 @@ class Database():
 		, 'ippool_insert': 'INSERT INTO ippool (ip, port, country, city, speed, conn_type) VALUES(:ip, :port, :country, :city, :speed, :conn_type)'
 		, 'ippool_update': 'UPDATE ippool SET country=:country, city=:city, speed=:speed, conn_type=:conn_type WHERE ip=:ip AND port=:port'
 		, 'ippool_update_valid': 'UPDATE ippool SET valid=:valid WHERE id=:id'
+		, 'spider_factiva_all': 'SELECT * FROM factiva_by_region ORDER BY create_time DESC LIMIT 500'
 		, 'spider_factiva_region_check': 'SELECT count(*) AS c FROM factiva_by_region WHERE region=:region and country=:country and name=:name'
-		, 'spider_factiva_region_insert': 'INSERT INTO factiva_by_region (uid, name, region, sub_region, country, raw_text, description, source_code, language, frequecy, link) VALUES (:uid, :name, :region, :sub_region, :country, :raw_text, :description, :source_code, :language, :frequecy, :link)'
-		, 'spider_factiva_region_update': 'UPDATE factiva_by_region SET name=:name, region=:region, sub_region=:sub_region, country=:country, raw_text=:raw_text, description=:description, source_code=:source_code, language=:language, frequecy=:frequecy, link=:link WHERE region=:region and country=:country and name=:name'
+		, 'spider_factiva_region_insert': 'INSERT INTO factiva_by_region (uid, name, region, sub_region, country, district, raw_text, description, source_code, language, frequecy, link) VALUES (:uid, :name, :region, :sub_region, :country, :district, :raw_text, :description, :source_code, :language, :frequecy, :link)'
+		, 'spider_factiva_region_update': 'UPDATE factiva_by_region SET name=:name, region=:region, sub_region=:sub_region, country=:country, district=:district, raw_text=:raw_text, description=:description, source_code=:source_code, language=:language, frequecy=:frequecy, link=:link WHERE region=:region and sub_region=:sub_region and country=:country and district=:district and name=:name'
 	}
 	DB_CFG_DEF = None
 	def __init__(self, o=None, set_cfg_def=True):

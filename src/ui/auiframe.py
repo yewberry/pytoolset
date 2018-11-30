@@ -88,6 +88,7 @@ class AuiFrame(wx.Frame):
 		# see the end up AuiManager.Update() for the test
 		# code. For now, just hard code a frame minimum size
 		self.SetMinSize(wx.Size(400, 300))
+		self.SetPosition(wx.Point(0, -1))
 
 		for p in self.perspectives:
 			p.create_panes()
