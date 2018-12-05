@@ -43,8 +43,8 @@ class FactivaSpider:
 			regions = self.get_regions()
 
 		for ridx,region in enumerate(regions):
-			#TODO 从北美洲开始
-			if ridx < 4:
+			#TODO 从欧洲开始
+			if ridx < 8:
 				continue
 			btn = region.find_element_by_tag_name('span')
 			arr = region.find_elements_by_tag_name('a')
@@ -53,8 +53,8 @@ class FactivaSpider:
 			items = region.find_elements_by_css_selector('div li')
 			for idx,item in enumerate(items):
 				#TODO 从美国开始
-				if region_name == '北美洲' and idx < 5:
-					continue
+				# if region_name == '南美洲' and idx < 6:
+				# 	continue
 				self.process_item(region_name, item)
 	
 	def login(self, usr, pwd):
@@ -124,8 +124,9 @@ class FactivaSpider:
 		popup_script = detail_btn.get_attribute('onclick')
 		drv.execute_script(popup_script)
 		try:
-			WebDriverWait(drv, 15).until(EC.visibility_of_element_located((By.ID, '_ceprogress__overlay')))
-			WebDriverWait(drv, 15).until(EC.invisibility_of_element_located((By.ID, '_ceprogress__overlay')))
+			# time.sleep(5)
+			WebDriverWait(drv, 3).until(EC.visibility_of_element_located((By.ID, '_ceprogress__overlay')))
+			WebDriverWait(drv, 3).until(EC.invisibility_of_element_located((By.ID, '_ceprogress__overlay')))
 			popup = drv.find_element_by_class_name('popup-body')
 		except Exception as e:
 			pass
@@ -178,7 +179,7 @@ class FactivaSpider:
 		link = self.find_popup_field_value(raw_text, '网址:')
 
 		o = {'uid': None, 'name':name, 'region':region_name, 'sub_region':sub_region, 'country':country_name
-		, 'district':district, 'raw_text':raw_text, 'description':desc, 'source_code':code, 'language':lang
+		, 'district':district if district is not None else '', 'raw_text':raw_text, 'description':desc, 'source_code':code, 'language':lang
 		, 'frequecy':freq, 'link':link}
 		recs.append(o)
 
@@ -207,7 +208,7 @@ class FactivaSpider:
 			LOG.info('Loading gone..')
 		except Exception as e:
 			LOG.info('Wait loading timeout')
-		time.sleep(5)
+		time.sleep(10)
 	
 	def is_leaf(self, el):
 		b = None
