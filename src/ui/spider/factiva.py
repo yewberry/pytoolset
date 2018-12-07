@@ -43,8 +43,8 @@ class FactivaSpider:
 			regions = self.get_regions()
 
 		for ridx,region in enumerate(regions):
-			#TODO 从欧洲开始
-			if ridx < 8:
+			#TODO 从非洲开始
+			if ridx < 11:
 				continue
 			btn = region.find_element_by_tag_name('span')
 			arr = region.find_elements_by_tag_name('a')
@@ -52,8 +52,8 @@ class FactivaSpider:
 			self.scroll_and_click(btn)
 			items = region.find_elements_by_css_selector('div li')
 			for idx,item in enumerate(items):
-				#TODO 从美国开始
-				# if region_name == '南美洲' and idx < 6:
+				#TODO 从澳大利亚/大洋洲开始
+				# if region_name == '澳大利亚/大洋洲' and idx < 2:
 				# 	continue
 				self.process_item(region_name, item)
 	
@@ -105,8 +105,8 @@ class FactivaSpider:
 			self.scroll_and_click(item_btn)
 			sub_items = el.find_elements_by_css_selector('div li')
 			for sidx,sub_item in enumerate(sub_items):
-				#TODO 马利兰
-				# if region_name == '北美洲' and index == -1 and sidx < 49:
+				#TODO 英国
+				# if region_name == '欧洲' and index == -1 and sidx < 16:
 				# 	continue
 				self.process_item(region_name, sub_item, sidx, len(sub_items))
 
@@ -140,7 +140,7 @@ class FactivaSpider:
 			popup = drv.find_element_by_class_name('popup-body')
 		if popup is None:
 			LOG.error('%s source %s not processed!'%process_source_name)
-			return			
+			return
 		
 		raw_text = drv.execute_script("return arguments[0].outerHTML;", popup)
 		soup = BeautifulSoup(raw_text)
@@ -249,15 +249,15 @@ class FactivaListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin):
 		self.InsertColumn(6, _('frequecy'))
 		self.InsertColumn(7, _('link'))
 
-		rows = self.db.query('spider_factiva_all')
-		for idx,r in enumerate(rows):
-			index = self.InsertItem(self.GetItemCount(), r.name)
-			self.SetItem(index, 1, r.region)
-			self.SetItem(index, 2, r.country)
-			self.SetItem(index, 3, r.description)
-			self.SetItem(index, 4, r.source_code)
-			self.SetItem(index, 5, r.language)
-			self.SetItem(index, 6, r.frequecy)
-			self.SetItem(index, 7, ''+r.link)
-			self.SetItemData(index, idx)
+		# rows = self.db.query('spider_factiva_all')
+		# for idx,r in enumerate(rows):
+		# 	index = self.InsertItem(self.GetItemCount(), r.name)
+		# 	self.SetItem(index, 1, r.region)
+		# 	self.SetItem(index, 2, r.country)
+		# 	self.SetItem(index, 3, r.description)
+		# 	self.SetItem(index, 4, r.source_code)
+		# 	self.SetItem(index, 5, r.language)
+		# 	self.SetItem(index, 6, r.frequecy)
+		# 	self.SetItem(index, 7, ''+r.link)
+		# 	self.SetItemData(index, idx)
 
