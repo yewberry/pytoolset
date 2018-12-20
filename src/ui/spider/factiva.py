@@ -57,6 +57,121 @@ class FactivaSpider:
 				# 	continue
 				self.process_item(region_name, item)
 	
+	def crawling_cata_industry(self, drv, usr, pwd):
+		self.drv = drv
+		self.login(usr, pwd)
+		self.load_search_page()
+		drv.find_element_by_id('inTab').click()
+		self.wait_loading()
+		self.process_tree('div[id=inMnu] li', self.process_cata_industry)
+		LOG.info('Complete!')
+	
+	def crawling_cata_expert(self, drv, usr, pwd):
+		self.drv = drv
+		self.login(usr, pwd)
+		self.load_search_page()
+		drv.find_element_by_id('fesTab').click()
+		self.wait_loading()
+		self.process_tree('div[id=fesMnu]>ul>li', self.process_cata_expert)
+		LOG.info('Complete!')
+	
+	def crawling_cata_news(self, drv, usr, pwd):
+		self.drv = drv
+		self.login(usr, pwd)
+		self.load_search_page()
+		drv.find_element_by_id('nsTab').click()
+		self.wait_loading()
+		self.process_tree('div[id=nsMnu]>ul>li', self.process_cata_news)
+		LOG.info('Complete!')
+	
+	def crawling_by_industry(self, drv, usr, pwd):
+		self.drv = drv
+		self.login(usr, pwd)
+		self.load_search_page()
+		drv.find_element_by_id('scTab').click()
+		self.wait_loading()
+		select = Select(drv.find_element_by_id('scCat'))
+		select.select_by_visible_text('按行业')
+		self.wait_loading()
+		self.process_tree('div[id=scMnu]>ul>li', self.process_by_industry)
+		LOG.info('Complete!')		
+	
+	def process_cata_industry(self, txt, el):
+		# ex. 休闲/艺术/餐饮与酒店业_剧院/娱乐场所_博物馆/古迹/花园
+		arr = txt.split('_')
+		o = {'uid':None}
+		idx = -1
+		for idx,s in enumerate(arr):
+			o['cata%s'%idx] = s
+		for i in range(idx+1, 8):
+			o['cata%s'%i] = ''
+		self.db.insert([o], 'spider_factiva_cata_industry_insert')
+		LOG.info('Insert:'+txt)
+	
+	def process_cata_expert(self, txt, el):
+		arr = txt.split('_')
+		o = {'uid':None}
+		idx = -1
+		for idx,s in enumerate(arr):
+			o['cata%s'%idx] = s
+		for i in range(idx+1, 8):
+			o['cata%s'%i] = ''
+		self.db.insert([o], 'spider_factiva_cata_expert_insert')
+		LOG.info('Insert:'+txt)
+
+	def process_cata_news(self, txt, el):
+		arr = txt.split('_')
+		o = {'uid':None}
+		idx = -1
+		for idx,s in enumerate(arr):
+			o['cata%s'%idx] = s
+		for i in range(idx+1, 8):
+			o['cata%s'%i] = ''
+		self.db.insert([o], 'spider_factiva_cata_news_insert')
+		LOG.info('Insert:'+txt)
+
+	def process_by_industry(self, txt, el):
+		drv = self.drv
+		arr = txt.split('_')
+		o = {'uid':None}
+		idx = -1
+		for idx,s in enumerate(arr):
+			o['cata%s'%idx] = s
+		for i in range(idx+1, 8):
+			o['cata%s'%i] = ''
+		
+		max_retry = 3
+		count = 0
+		sarr = el.find_elements_by_tag_name('a')
+		process_source_name = sarr[0].text.replace('\n', '').split(':')[1].strip()
+		detail_btn = sarr[1]
+		LOG.info('Process %s'%process_source_name)
+		while count<max_retry:
+			count += 1
+			popup = self.show_detail_dialog(detail_btn)
+			if popup is None:
+				LOG.error('Fail to popup dialog, try again!')
+				continue
+			raw_text = drv.execute_script("return arguments[0].outerHTML;", popup)
+			soup = BeautifulSoup(raw_text)
+			trs = soup.find_all('tr')
+			if len(trs)<1:
+				LOG.error('Popup dialog is empty, try again!')
+				continue
+			name = trs[0].find('img').attrs['title'].strip()
+			link = self.find_popup_field_value(raw_text, '网址:')
+			o['name'] = name
+			o['raw_text'] = raw_text
+			o['link'] = link
+			break
+			
+		if count>=max_retry:
+			LOG.error('%s source not processed!'%process_source_name)
+			return
+		
+		self.db.insert([o], 'spider_factiva_by_industry_insert')
+		LOG.info('Get info %s'%o['name'])
+
 	def login(self, usr, pwd):
 		drv = self.drv
 		drv.get('https://global.factiva.com/factivalogin/login.asp?productname=global')
@@ -76,6 +191,136 @@ class FactivaSpider:
 		except Exception as e:
 			traceback.print_exc()
 	
+	def load_search_page(self):
+		drv = self.drv
+		rtn = False
+		try:
+			drv.get('https://global.factiva.com/sb/default.aspx?NAPC=S')
+			LOG.info('Wait search page shown...')
+			WebDriverWait(drv, 30).until(EC.presence_of_element_located((By.ID, 'inpillscontextmenu')))
+			LOG.info('Search page shown!')
+			rtn = True
+		except Exception as e:
+			LOG.error('Search page not found!')
+			traceback.print_exc()
+		return rtn
+	
+	def process_tree(self, selector, cb=None):
+		drv = self.drv
+		top_items = drv.find_elements_by_css_selector(selector)
+		LOG.info('Top-level items num:%s' % len(top_items))
+		for idx,item in enumerate(top_items):
+			self.process_tree_item( item, cb, idx_str='%s/%s' % (idx+1, len(top_items)) )
+	
+	def process_tree_item(self, el, cb=None, parent_str='', idx_str=''):
+		if self.is_tree_leaf(el):
+			LOG.info('Process leaf:%s'%idx_str)
+			self.process_item_info(el, cb, parent_str)
+		else:
+			item_btn = el.find_element_by_class_name('mnuBtn')
+			self.scroll_and_click(item_btn)
+			sub_items = el.find_elements_by_xpath('./div/ul/li')
+			for sidx,sub_item in enumerate(sub_items):
+				etxt = self.get_tree_node_text(el)
+				pstr = etxt if parent_str == '' else parent_str+'_'+etxt
+				istr = '%s_%s/%s' % (idx_str, sidx+1, len(sub_items))
+				self.process_tree_item(sub_item, cb, pstr, istr)
+	
+	def process_item_info(self, el, cb=None, parent_str=''):
+		txt = parent_str+'_'+self.get_tree_node_text(el)
+		if cb is None:
+			LOG.info(item_text)
+		else:
+			cb(txt, el)
+	
+	def show_detail_dialog(self, detail_btn):
+		drv = self.drv
+		popup = None
+		try:
+			drv.execute_script("arguments[0].scrollIntoView();", detail_btn)
+			action_chains = ActionChains(drv)
+			action_chains.send_keys(Keys.ESCAPE).perform()
+			popup_script = detail_btn.get_attribute('onclick')
+			drv.execute_script(popup_script)
+			WebDriverWait(drv, 3).until(EC.visibility_of_element_located((By.ID, 'relInfoPopupBalloon__overlay')))
+			popup = drv.find_element_by_class_name('popup-body')
+			time.sleep(2)
+		except Exception as e:
+			pass
+		return popup
+
+	def is_tree_leaf(self, el):
+		b = None
+		try:
+			b = el.find_element_by_class_name('mnuBtn')
+		except Exception as e:
+			pass
+		return True if b is None else False
+	
+	def get_tree_node_text(self, el):
+		arr = el.find_elements_by_tag_name('a')
+		txt = arr[0].text.strip()
+		# txt = txt.replace(' ', '')
+		return txt
+
+	def wait_loading(self, wait=30):
+		drv = self.drv
+		wait_show = 3
+		wait_hide = wait
+		finish = False
+		div = None
+		for i in range(0, wait_show):
+			time.sleep(1)
+			LOG.info('Try find loading div...')
+			try:
+				div = drv.find_element_by_class_name('mnuMsg')
+				txt = div.text
+				if txt == '正在加载...':
+					break
+			except Exception as e:
+				pass
+		if div is not None:
+			LOG.info('Start loading...')
+			for i in range(0, wait_hide):
+				time.sleep(1)
+				try:
+					div = drv.find_element_by_class_name('mnuMsg')
+					txt = div.text
+					if txt != '正在加载...':
+						finish = True
+						break
+				except Exception as e:
+					finish = True
+					break
+		else:
+			LOG.info('Loading div not found, suppose finish loading')
+			finish = True
+		LOG.info('Finish loading.' if finish else 'Load timeout, suppose finished loading.')
+
+	def scroll_and_click(self, el):
+		drv = self.drv
+		drv.execute_script("arguments[0].scrollIntoView();", el)
+		time.sleep(1)
+		drv.execute_script("arguments[0].onclick();", el)
+		self.wait_loading()
+
+	def find_popup_field_value(self, html_str, key):
+		key_val = key.strip()
+		soup = BeautifulSoup(html_str)
+		trs = soup.find_all('tr')
+		rtn = None
+		for idx, tr in enumerate(trs):
+			if idx < 2:
+				continue
+			if len(tr)<3:
+				continue
+			key_td = tr.contents[0]
+			val_td = tr.contents[2]
+			if key_td.text.strip() == key_val:
+				rtn = val_td.div.text.strip() if val_td.div else val_td.text.strip()
+				break
+		return rtn
+################################################################################
 	def get_regions(self):
 		drv = self.drv
 		regions = None
@@ -192,13 +437,6 @@ class FactivaSpider:
 				, 'spider_factiva_region_update'
 				, ['region', 'sub_region', 'country', 'district', 'name'])
 		LOG.info('Get info %s'%name)
-	
-	def scroll_and_click(self, el):
-		drv = self.drv
-		drv.execute_script("arguments[0].scrollIntoView();", el)
-		time.sleep(1)
-		drv.execute_script("arguments[0].onclick();", el)
-		self.wait_load()
 
 	def wait_load(self):
 		try:
@@ -215,25 +453,8 @@ class FactivaSpider:
 		try:
 			b = el.find_element_by_class_name('mnuBtn')
 		except Exception as e:
-			pass		
+			pass
 		return True if b is None else False
-
-	def find_popup_field_value(self, html_str, key):
-		key_val = key.strip()
-		soup = BeautifulSoup(html_str)
-		trs = soup.find_all('tr')
-		rtn = None
-		for idx, tr in enumerate(trs):
-			if idx < 2:
-				continue
-			if len(tr)<3:
-				continue
-			key_td = tr.contents[0]
-			val_td = tr.contents[2]
-			if key_td.text.strip() == key_val:
-				rtn = val_td.div.text.strip() if val_td.div else val_td.text.strip()
-				break
-		return rtn
 
 class FactivaListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin):
 	def __init__(self, parent, db, ID=-1, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0):

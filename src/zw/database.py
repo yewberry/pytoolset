@@ -39,6 +39,77 @@ class Database():
 			`delete_flag` int(11) NOT NULL DEFAULT '0',
 			PRIMARY KEY (`uid`)
 			) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+			""",
+			"""
+			CREATE TABLE IF NOT EXISTS `factiva_by_industry` (
+			`uid` char(36) NOT NULL,
+			`name` varchar(128) NOT NULL,
+			`cata0` varchar(128) NOT NULL,
+			`cata1` varchar(128) NOT NULL,
+			`cata2` varchar(128) NOT NULL,
+			`cata3` varchar(128) NOT NULL,
+			`cata4` varchar(128) NOT NULL,
+			`cata5` varchar(128) NOT NULL,
+			`cata6` varchar(128) NOT NULL,
+			`cata7` varchar(128) NOT NULL,
+			`raw_text` text DEFAULT NULL,
+			`link` varchar(1024) DEFAULT NULL,
+			`create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			`update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+			`delete_flag` int(11) NOT NULL DEFAULT '0',
+			PRIMARY KEY (`uid`)
+			) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+			""",
+			"""
+			CREATE TABLE IF NOT EXISTS `factiva_cata_industry` (
+			`uid` char(36) NOT NULL,
+			`cata0` varchar(128) NOT NULL,
+			`cata1` varchar(128) NOT NULL,
+			`cata2` varchar(128) NOT NULL,
+			`cata3` varchar(128) NOT NULL,
+			`cata4` varchar(128) NOT NULL,
+			`cata5` varchar(128) NOT NULL,
+			`cata6` varchar(128) NOT NULL,
+			`cata7` varchar(128) NOT NULL,
+			`create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			`update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+			`delete_flag` int(11) NOT NULL DEFAULT '0',
+			PRIMARY KEY (`uid`)
+			) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+			""",
+			"""
+			CREATE TABLE IF NOT EXISTS `factiva_cata_expert` (
+			`uid` char(36) NOT NULL,
+			`cata0` varchar(128) NOT NULL,
+			`cata1` varchar(128) NOT NULL,
+			`cata2` varchar(128) NOT NULL,
+			`cata3` varchar(128) NOT NULL,
+			`cata4` varchar(128) NOT NULL,
+			`cata5` varchar(128) NOT NULL,
+			`cata6` varchar(128) NOT NULL,
+			`cata7` varchar(128) NOT NULL,
+			`create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			`update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+			`delete_flag` int(11) NOT NULL DEFAULT '0',
+			PRIMARY KEY (`uid`)
+			) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+			""",
+			"""
+			CREATE TABLE IF NOT EXISTS `factiva_cata_news` (
+			`uid` char(36) NOT NULL,
+			`cata0` varchar(128) NOT NULL,
+			`cata1` varchar(128) NOT NULL,
+			`cata2` varchar(128) NOT NULL,
+			`cata3` varchar(128) NOT NULL,
+			`cata4` varchar(128) NOT NULL,
+			`cata5` varchar(128) NOT NULL,
+			`cata6` varchar(128) NOT NULL,
+			`cata7` varchar(128) NOT NULL,
+			`create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			`update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+			`delete_flag` int(11) NOT NULL DEFAULT '0',
+			PRIMARY KEY (`uid`)
+			) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 			"""
 		]
 	}
@@ -53,6 +124,11 @@ class Database():
 		, 'spider_factiva_region_check': 'SELECT count(*) AS c FROM factiva_by_region WHERE region=:region and sub_region=:sub_region and country=:country and district=:district and name=:name'
 		, 'spider_factiva_region_insert': 'INSERT INTO factiva_by_region (uid, name, region, sub_region, country, district, raw_text, description, source_code, language, frequecy, link) VALUES (:uid, :name, :region, :sub_region, :country, :district, :raw_text, :description, :source_code, :language, :frequecy, :link)'
 		, 'spider_factiva_region_update': 'UPDATE factiva_by_region SET name=:name, region=:region, sub_region=:sub_region, country=:country, district=:district, raw_text=:raw_text, description=:description, source_code=:source_code, language=:language, frequecy=:frequecy, link=:link WHERE region=:region and sub_region=:sub_region and country=:country and district=:district and name=:name'
+		, 'spider_factiva_cata_industry_insert': 'INSERT INTO factiva_cata_industry (uid, cata0, cata1, cata2, cata3, cata4, cata5, cata6, cata7) VALUES (:uid, :cata0, :cata1, :cata2, :cata3, :cata4, :cata5, :cata6, :cata7)'
+		, 'spider_factiva_cata_expert_insert': 'INSERT INTO factiva_cata_expert (uid, cata0, cata1, cata2, cata3, cata4, cata5, cata6, cata7) VALUES (:uid, :cata0, :cata1, :cata2, :cata3, :cata4, :cata5, :cata6, :cata7)'
+		, 'spider_factiva_cata_news_insert': 'INSERT INTO factiva_cata_news (uid, cata0, cata1, cata2, cata3, cata4, cata5, cata6, cata7) VALUES (:uid, :cata0, :cata1, :cata2, :cata3, :cata4, :cata5, :cata6, :cata7)'
+		, 'spider_factiva_by_industry_insert': 'INSERT INTO factiva_by_industry (uid, name, cata0, cata1, cata2, cata3, cata4,  cata5, cata6, cata7, raw_text, link) VALUES (:uid, :name, :cata0, :cata1, :cata2, :cata3, :cata4, :cata5, :cata6, :cata7, :raw_text, :link)'
+
 	}
 	DB_CFG_DEF = None
 	def __init__(self, o=None, set_cfg_def=True):
@@ -100,6 +176,15 @@ class Database():
 		rows = db.bulk_query(sql, *multiparams)
 		return rows
 	
+	def insert(self, recs, insertop):
+		db = self.get_db()
+		recs_insert = []
+		for r in recs:
+			if 'uid' in r and r['uid'] is None:
+				r['uid'] = str(uuid.uuid4())
+			recs_insert.append(r)
+		db.bulk_query(Database.DB_SQL[insertop], *recs_insert)
+
 	def insert_update(self, recs, checkop, insertop, updateop, checkflds):
 		db = self.get_db()
 		recs_insert = []

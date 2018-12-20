@@ -135,54 +135,12 @@ class SpiderPerspective(Perspective):
 		usr = obj['usr']
 		pwd = obj['pwd']
 		drv = self.init_browser()
-		self.factiva.crawling(drv, usr, pwd)
-
-		# try:
-			
-		# 	for idx,el in enumerate(regions):
-		# 		#TODO 从北美洲开始
-		# 		if idx < 4:
-		# 			continue
-		# 		btn = el.find_element_by_tag_name('span')
-		# 		arr = el.find_elements_by_tag_name('a')
-		# 		region_name = arr[0].text.strip()
-		# 		drv.execute_script("arguments[0].scrollIntoView();", btn)
-		# 		time.sleep(3)
-		# 		drv.execute_script("arguments[0].onclick();", btn)
-		# 		# btn.click()
-		# 		self.wait_factiva_load()
-		# 		countries = el.find_elements_by_css_selector('div li')
-		# 		if len(countries)>0:
-		# 			first_item = countries[0].find_elements_by_tag_name('a')[0].text.strip()
-		# 			if region_name == '亚洲' or region_name == '非洲' or first_item == '太平洋岛国':
-		# 				LOG.info('%s含子区域!'%region_name)
-		# 				sub_regions = el.find_elements_by_css_selector('div li')
-		# 				for sub_idx,sub_reg in enumerate(sub_regions):
-		# 					if idx == 2 and sub_idx == 5:
-		# 						# 亚洲的俄罗斯
-		# 						self.process_country(drv, db, sub_reg, region_name)
-		# 					else:
-		# 						subbtn = sub_reg.find_element_by_tag_name('span')
-		# 						subarr = sub_reg.find_elements_by_tag_name('a')
-		# 						subregion_name = subarr[0].text.strip()
-		# 						drv.execute_script("arguments[0].scrollIntoView();", subbtn)
-		# 						time.sleep(3)
-		# 						drv.execute_script("arguments[0].onclick();", subbtn)
-		# 						# subbtn.click()
-		# 						self.wait_factiva_load()
-		# 						sub_countries = sub_reg.find_elements_by_css_selector('div li')
-		# 						LOG.info('%s下，子区域%s 国家数:%s'%(region_name, subregion_name, len(sub_countries)))
-		# 						self.process_countries(drv, db, sub_countries, region_name, subregion_name)
-		# 			else:
-		# 				LOG.info('%s下国家数:%s'%(region_name, len(countries)))
-		# 				self.process_countries(drv, db, countries, region_name)
-		# 		else:
-		# 			LOG.info('%s无国家数据!'%region_name)
-
-		# finally:
-		# 	pass
-		# 	#drv.quit()
-
+		# self.factiva.crawling(drv, usr, pwd)
+		# self.factiva.crawling_cata_industry(drv, usr, pwd)
+		# self.factiva.crawling_cata_expert(drv, usr, pwd)
+		# self.factiva.crawling_cata_news(drv, usr, pwd)
+		self.factiva.crawling_by_industry(drv, usr, pwd)
+		
 	def init_browser(self):
 		if self.browser is not None:
 			return self.browser
